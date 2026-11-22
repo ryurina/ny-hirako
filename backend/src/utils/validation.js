@@ -68,6 +68,26 @@ export class Validateur {
     return nombre;
   }
 
+  // Montant en Ariary : positif ou nul, 2 décimales maximum, tient dans NUMERIC(12,2)
+  montant(valeur, champ, { requis = false } = {}) {
+    if (estVide(valeur)) {
+      if (requis) this.erreur(champ, 'obligatoire');
+      return null;
+    }
+    const nombre = typeof valeur === 'string' ? Number(valeur) : valeur;
+    if (
+      typeof nombre !== 'number' ||
+      !Number.isFinite(nombre) ||
+      nombre < 0 ||
+      nombre > 9999999999.99 ||
+      Math.abs(nombre * 100 - Math.round(nombre * 100)) > 1e-3
+    ) {
+      this.erreur(champ, 'montant positif ou nul (2 décimales maximum)');
+      return null;
+    }
+    return nombre;
+  }
+
   email(valeur, champ, { requis = false } = {}) {
     const email = this.texte(valeur, champ, { requis, max: 255 });
     if (email !== null && !REGEX_EMAIL.test(email)) {
@@ -115,7 +135,7 @@ export class Validateur {
 
 // Valide les champs d'une personne (utilisé pour créer un ayant droit)
 export function validerNouvellePersonne(v, p, prefixe) {
-  const champ = (nom) => `${prefixe}.${nom}`;
+  const champ = (nom) => (prefixe ? `${prefixe}.${nom}` : nom);
   const type = v.enumeration(p.type, champ('type'), ['PHYSIQUE', 'MORALE'], { requis: true });
   const donnees = {
     type,

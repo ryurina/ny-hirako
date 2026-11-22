@@ -19,8 +19,8 @@ Les auteurs, compositeurs, arrangeurs et éditeurs malagasy n'ont pas d'outil si
 | Acteur | Accès | Possibilités |
 |---|---|---|
 | **Visiteur** | Public, sans compte | Rechercher et consulter les œuvres et ayants droit validés ; soumettre une œuvre via un formulaire |
-| **Modérateur** | Connexion requise | Valider ou rejeter les soumissions ; gérer personnes, œuvres, contributions, diffuseurs |
-| **Administrateur** | Connexion requise | Tout ce que fait le modérateur, plus la gestion des diffuseurs, des diffusions, des répartitions et des comptes |
+| **Modérateur** | Connexion requise | Valider ou rejeter les soumissions ; gérer les personnes, les œuvres et leurs contributions |
+| **Administrateur** | Connexion requise | Tout ce que fait le modérateur, plus la gestion des diffuseurs, des diffusions, des répartitions de droits et des comptes |
 
 Fonctionnalités principales : ajout, consultation, modification, suppression et recherche pour chaque entité, workflow de modération des soumissions, calcul de la répartition des droits par diffusion.
 
@@ -210,6 +210,8 @@ Certaines règles métier ne s'expriment pas par une dépendance fonctionnelle e
 - `part_pct` entre 0 et 100 (`CHECK`).
 - Somme des parts d'une œuvre égale à 100, vérifiée à la validation de l'œuvre (trigger).
 - Seule une personne `MORALE` peut avoir le rôle Éditeur (trigger).
+- Une œuvre validée ne peut contenir que des ayants droit validés, et une personne liée à une œuvre validée ne peut plus être rejetée (triggers).
+- Une personne qui est éditeur d'une œuvre ne peut pas devenir une personne physique (trigger).
 - Une ligne de REPARTITION doit référencer une contribution de la même œuvre que la diffusion (trigger). Le `montant` est dérivé de `montant_total × part_pct`, mais cette relation entre plusieurs tables n'est pas une dépendance fonctionnelle interne à REPARTITION, donc elle ne remet pas en cause la BCNF.
 
 ## 6. Installation et lancement
@@ -225,7 +227,8 @@ Certaines règles métier ne s'expriment pas par une dépendance fonctionnelle e
 ny-hirako/
 ├── db/
 │   ├── schema.sql        # création de la base
-│   └── seed.sql          # données d'exemple
+│   ├── seed.sql          # données d'exemple
+│   └── migrations/       # modifications à appliquer sur une base existante
 ├── backend/              # API Express
 │   ├── src/
 │   │   ├── config.js     # variables d'environnement
@@ -307,6 +310,89 @@ curl -X PATCH http://localhost:3000/api/gestion/oeuvres/9/statut \
 
 La dernière commande est refusée (422) tant que l'ayant droit « Rakoto Jean » n'a pas été validé : c'est la règle appliquée par le trigger `trg_valider_oeuvre`.
 
+### Routes des personnes et des rôles
+
+| Méthode | Route | Accès | Description |
+|---|---|---|---|
+| GET | `/api/roles` | Public | Liste des rôles (pour le formulaire de soumission) |
+| GET | `/api/personnes?q=&type=&ville=&page=&limit=` | Public | Recherche parmi les ayants droit **validés** (sans email, téléphone ni date de naissance) |
+| GET | `/api/personnes/:id` | Public | Fiche d'un ayant droit avec ses œuvres validées |
+| GET | `/api/gestion/personnes?statut=&q=&type=` | Modérateur / Admin | Liste de tous les ayants droit, tous statuts |
+| GET | `/api/gestion/personnes/:id` | Modérateur / Admin | Fiche complète avec coordonnées et toutes les œuvres |
+| POST | `/api/gestion/personnes` | Modérateur / Admin | Création (statut `VALIDE` directement) |
+| PUT | `/api/gestion/personnes/:id` | Modérateur / Admin | Modification |
+| PATCH | `/api/gestion/personnes/:id/statut` | Modérateur / Admin | Validation ou rejet : `{"statut": "VALIDE"}` |
+| DELETE | `/api/gestion/personnes/:id` | Modérateur / Admin | Suppression (refusée si la personne a des contributions) |
+
+```bash
+# Rôles et recherche publique
+curl http://localhost:3000/api/roles
+curl "http://localhost:3000/api/personnes?q=njaka"
+curl http://localhost:3000/api/personnes/1
+
+# Modération : ayants droit en attente, puis validation
+curl "http://localhost:3000/api/gestion/personnes?statut=EN_ATTENTE" -H "Authorization: Bearer $TOKEN"
+curl -X PATCH http://localhost:3000/api/gestion/personnes/12/statut \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"statut": "VALIDE"}'
+```
+
+Pour une base déjà créée avant l'ajout des règles sur les ayants droit : `psql -d nyhirako -f db/migrations/001_regles_personnes.sql`.
+
+### Routes des diffuseurs, diffusions et droits (administrateurs)
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET / POST | `/api/gestion/diffuseurs` | Liste (`q`, `type`, `ville`) et création |
+| GET / PUT / DELETE | `/api/gestion/diffuseurs/:id` | Fiche, modification, suppression (refusée s'il a des diffusions) |
+| GET | `/api/gestion/diffusions?id_oeuvre=&id_diffuseur=&date_debut=&date_fin=` | Liste filtrée des diffusions |
+| POST | `/api/gestion/diffusions` | Enregistre une diffusion **et calcule la répartition** des droits |
+| GET | `/api/gestion/diffusions/:id` | Diffusion avec le détail de sa répartition |
+| PUT | `/api/gestion/diffusions/:id` | Modifie diffuseur, date ou montant, puis recalcule la répartition |
+| POST | `/api/gestion/diffusions/:id/repartition` | Recalcule la répartition |
+| DELETE | `/api/gestion/diffusions/:id` | Supprime la diffusion et sa répartition |
+| GET | `/api/gestion/droits/personnes?q=` | Classement des ayants droit par total de droits perçus |
+| GET | `/api/gestion/droits/personnes/:id` | Détail des droits d'un ayant droit, diffusion par diffusion |
+| GET | `/api/gestion/statistiques` | Chiffres du tableau de bord (modérateurs et admins ; les montants sont réservés aux admins) |
+
+Création d'une diffusion :
+
+```mermaid
+sequenceDiagram
+    participant A as Administrateur
+    participant API as API Express
+    participant DB as PostgreSQL
+    A->>API: POST /api/gestion/diffusions
+    API->>DB: BEGIN
+    API->>DB: INSERT INTO diffusion
+    API->>DB: SELECT calculer_repartition(id)
+    Note over DB: montant = montant_total x part_pct / 100<br/>refus si l'œuvre n'est pas validée
+    API->>DB: COMMIT
+    API-->>A: 201 diffusion + répartition
+```
+
+```bash
+# Diffuseurs et diffusions existants
+curl http://localhost:3000/api/gestion/diffuseurs -H "Authorization: Bearer $TOKEN"
+curl "http://localhost:3000/api/gestion/diffusions?id_oeuvre=1" -H "Authorization: Bearer $TOKEN"
+
+# Nouvelle diffusion de l'œuvre 1 : 200 000 Ar -> 80 000 / 80 000 / 40 000
+curl -X POST http://localhost:3000/api/gestion/diffusions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"id_oeuvre": 1, "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 200000}'
+
+# Même chose pour l'œuvre 7, non validée : refusé (422), rien n'est créé
+curl -X POST http://localhost:3000/api/gestion/diffusions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"id_oeuvre": 7, "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 100000}'
+
+# Classement des droits et détail pour un ayant droit
+curl http://localhost:3000/api/gestion/droits/personnes -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3000/api/gestion/droits/personnes/1 -H "Authorization: Bearer $TOKEN"
+```
+
+Les montants sont exprimés en Ariary et renvoyés sous forme de chaînes (`"80000.00"`) pour éviter toute perte de précision.
+
 ### Gestion des erreurs
 
 L'API traduit les erreurs PostgreSQL en codes HTTP :
@@ -314,7 +400,8 @@ L'API traduit les erreurs PostgreSQL en codes HTTP :
 | Erreur PostgreSQL | Code HTTP | Exemple |
 |---|---|---|
 | Violation d'unicité | 409 | Code ISWC déjà utilisé |
-| Clé étrangère / `RESTRICT` | 409 | Suppression d'une œuvre déjà diffusée |
+| Clé étrangère : élément encore utilisé | 409 | Suppression d'une œuvre déjà diffusée |
+| Clé étrangère : référence inexistante | 422 | `id_diffuseur` qui n'existe pas |
 | `CHECK` ou trigger | 422 | Somme des parts différente de 100 |
 | Valeur invalide ou champ manquant | 400 | Statut inconnu |
 

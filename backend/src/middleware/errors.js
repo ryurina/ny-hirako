@@ -24,12 +24,27 @@ export function errorHandler(err, req, res, next) {
   switch (err.code) {
     case '23505': // unique_violation
       return res.status(409).json({ error: 'Cette valeur existe déjà', contrainte: err.constraint });
-    case '23503': // foreign_key_violation
-    case '23001': // restrict_violation (ON DELETE RESTRICT)
+    case '23503': // foreign_key_violation (aussi levée par ON DELETE RESTRICT)
+    case '23001': {
+      // Les messages PostgreSQL commencent par « insert or update » (référence inexistante)
+      // ou « update or delete » (élément encore utilisé) lorsque le serveur est en anglais.
+      if (err.message?.startsWith('insert or update')) {
+        return res.status(422).json({
+          error: 'Référence inexistante : vérifiez les identifiants fournis',
+          contrainte: err.constraint,
+        });
+      }
+      if (err.message?.startsWith('update or delete')) {
+        return res.status(409).json({
+          error: "Opération refusée : cet élément est encore utilisé par d'autres données",
+          contrainte: err.constraint,
+        });
+      }
       return res.status(409).json({
-        error: "Opération refusée : cet élément est lié à d'autres données",
+        error: "Opération refusée : référence inexistante ou élément encore utilisé par d'autres données",
         contrainte: err.constraint,
       });
+    }
     case '23514': // check_violation : CHECK de table ou exception levée par un trigger
       return res.status(422).json({
         error: err.constraint ? `Contrainte non respectée : ${err.constraint}` : err.message,
