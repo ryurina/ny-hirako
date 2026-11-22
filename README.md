@@ -24,6 +24,19 @@ Les auteurs, compositeurs, arrangeurs et éditeurs malagasy n'ont pas d'outil si
 
 Fonctionnalités principales : ajout, consultation, modification, suppression et recherche pour chaque entité, workflow de modération des soumissions, calcul de la répartition des droits par diffusion.
 
+Cycle de vie d'une soumission (œuvre ou personne) :
+
+```mermaid
+stateDiagram-v2
+    [*] --> EN_ATTENTE : soumission via le formulaire public
+    EN_ATTENTE --> VALIDE : validation par un modérateur
+    EN_ATTENTE --> REJETE : rejet par un modérateur
+    VALIDE --> [*]
+    REJETE --> [*]
+```
+
+Une œuvre ne peut être validée que si la somme des parts de ses contributions vaut 100 et si tous ses ayants droit sont déjà validés.
+
 ## 3. Stack technique
 
 | Couche | Choix | Justification |
@@ -31,6 +44,16 @@ Fonctionnalités principales : ajout, consultation, modification, suppression et
 | Frontend | Vue 3 + Vite | Framework réactif, léger, rapide à mettre en place |
 | Backend | Node.js + Express | API REST simple et rapide à développer |
 | Base de données | PostgreSQL | Contraintes d'intégrité robustes (CHECK, triggers, énumérations) |
+
+```mermaid
+flowchart LR
+    V["Visiteur<br/>(formulaire, recherche)"] --> F
+    M["Modérateur / Admin<br/>(connecté)"] --> F
+    F["Frontend<br/>Vue 3 + Vite"] -->|"HTTP / JSON"| A["API REST<br/>Express"]
+    A -->|"SQL (pg)"| D[("PostgreSQL")]
+```
+
+L'intégrité des données est garantie par la base elle-même (contraintes, triggers) : l'API se contente de traduire les erreurs PostgreSQL en réponses HTTP claires.
 
 ## 4. Modèle entité-association
 
@@ -191,11 +214,184 @@ Certaines règles métier ne s'expriment pas par une dépendance fonctionnelle e
 
 ## 6. Installation et lancement
 
+### Prérequis
+
+- Node.js 20.6 ou plus
+- PostgreSQL 13 ou plus, avec la base créée et remplie (voir section 7)
+
+### Structure du dépôt
+
+```
+ny-hirako/
+├── db/
+│   ├── schema.sql        # création de la base
+│   └── seed.sql          # données d'exemple
+├── backend/              # API Express
+│   ├── src/
+│   │   ├── config.js     # variables d'environnement
+│   │   ├── db.js         # pool PostgreSQL et transactions
+│   │   ├── app.js        # application Express
+│   │   ├── index.js      # démarrage du serveur
+│   │   ├── middleware/   # authentification JWT, gestion des erreurs
+│   │   ├── routes/       # routes de l'API
+│   │   └── utils/
+│   └── .env.example
+└── frontend/              # frontend Vue 3 (à venir)
+```
+
+### Backend (API)
+
+```bash
+cd backend
+npm install express pg bcryptjs jsonwebtoken cors
+cp .env.example .env      # puis adapter DATABASE_URL et JWT_SECRET
+npm run dev
+```
+
+L'API écoute par défaut sur `http://localhost:3000`.
+
+### Tester l'API
+
+```bash
+# L'API et la base répondent
+curl http://localhost:3000/api/health
+
+# Connexion d'un administrateur (renvoie un jeton JWT)
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@nyhirako.example","password":"Admin123!"}'
+
+# Utilisateur connecté (remplacer <jeton> par le jeton reçu)
+curl http://localhost:3000/api/auth/me -H "Authorization: Bearer <jeton>"
+```
+
+### Routes des œuvres
+
+| Méthode | Route | Accès | Description |
+|---|---|---|---|
+| GET | `/api/oeuvres?q=&genre=&annee=&page=&limit=` | Public | Recherche dans les œuvres **validées** (par titre ou par nom d'ayant droit) |
+| GET | `/api/oeuvres/:id` | Public | Détail d'une œuvre validée avec ses contributions |
+| POST | `/api/oeuvres` | Public | Formulaire de soumission : crée l'œuvre en `EN_ATTENTE` |
+| GET | `/api/gestion/oeuvres?statut=&q=` | Modérateur / Admin | Liste de toutes les œuvres, tous statuts |
+| GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission |
+| POST | `/api/gestion/oeuvres` | Modérateur / Admin | Création directe |
+| PUT | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Modification (les contributions sont remplacées si elles sont fournies) |
+| PATCH | `/api/gestion/oeuvres/:id/statut` | Modérateur / Admin | Validation ou rejet : `{"statut": "VALIDE"}` |
+| DELETE | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Suppression (refusée si l'œuvre a des diffusions) |
+
+Une soumission peut référencer un ayant droit existant (`id_personne`) ou en créer un nouveau (`nouvelle_personne`), qui reste `EN_ATTENTE` jusqu'à sa validation.
+
+```bash
+# Recherche publique
+curl "http://localhost:3000/api/oeuvres?q=salegy"
+curl "http://localhost:3000/api/oeuvres?q=hery"
+
+# Soumission publique (un ayant droit existant + un nouveau)
+curl -X POST http://localhost:3000/api/oeuvres \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titre": "Mamelombelona", "genre": "Salegy", "annee_creation": 2025,
+    "duree_sec": 210, "soumetteur_email": "test@example.com",
+    "contributions": [
+      {"id_personne": 1, "id_role": 2, "part_pct": 60},
+      {"nouvelle_personne": {"type": "PHYSIQUE", "nom": "Rakoto", "prenom": "Jean"}, "id_role": 1, "part_pct": 40}
+    ]
+  }'
+
+# Modération (avec le jeton obtenu au login dans $TOKEN)
+curl "http://localhost:3000/api/gestion/oeuvres?statut=EN_ATTENTE" -H "Authorization: Bearer $TOKEN"
+curl -X PATCH http://localhost:3000/api/gestion/oeuvres/9/statut \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"statut": "VALIDE"}'
+```
+
+La dernière commande est refusée (422) tant que l'ayant droit « Rakoto Jean » n'a pas été validé : c'est la règle appliquée par le trigger `trg_valider_oeuvre`.
+
+### Gestion des erreurs
+
+L'API traduit les erreurs PostgreSQL en codes HTTP :
+
+| Erreur PostgreSQL | Code HTTP | Exemple |
+|---|---|---|
+| Violation d'unicité | 409 | Code ISWC déjà utilisé |
+| Clé étrangère / `RESTRICT` | 409 | Suppression d'une œuvre déjà diffusée |
+| `CHECK` ou trigger | 422 | Somme des parts différente de 100 |
+| Valeur invalide ou champ manquant | 400 | Statut inconnu |
+
+### Frontend
+
 *À compléter.*
 
 ## 7. Création et remplissage de la base
 
-*À compléter.*
+### Prérequis
+
+- PostgreSQL 13 ou plus (l'extension `pgcrypto` est utilisée pour hacher les mots de passe)
+- Un client `psql` en encodage UTF-8
+
+### Scripts fournis
+
+| Fichier | Rôle |
+|---|---|
+| `db/schema.sql` | Supprime puis recrée types, tables, index, triggers, fonction `calculer_repartition` et vue `vue_droits_par_personne` |
+| `db/seed.sql` | Insère des données d'exemple fictives (11 personnes, 8 œuvres, 5 diffuseurs, 12 diffusions) et calcule les répartitions |
+
+### Étapes
+
+```bash
+# 1. Créer la base
+createdb -U postgres nyhirako
+
+# 2. Créer le schéma
+psql -U postgres -d nyhirako -f db/schema.sql
+
+# 3. Charger les données d'exemple
+psql -U postgres -d nyhirako -f db/seed.sql
+```
+
+Les scripts peuvent être relancés : `schema.sql` remet la base à zéro.
+
+### Comptes de démonstration
+
+| Email | Mot de passe | Rôle |
+|---|---|---|
+| `admin@nyhirako.example` | `Admin123!` | ADMIN |
+| `moderateur@nyhirako.example` | `Moderateur123!` | MODERATEUR |
+
+Ces comptes servent uniquement à la démonstration.
+
+### Vérifier que la base est correcte
+
+```sql
+-- Total des droits par ayant droit
+SELECT * FROM vue_droits_par_personne ORDER BY total_droits DESC;
+
+-- Répartition d'une diffusion
+SELECT p.nom, r_role.libelle, c.part_pct, r.montant
+FROM repartition r
+JOIN contribution c  ON c.id_contribution = r.id_contribution
+JOIN personne p      ON p.id_personne = c.id_personne
+JOIN role r_role     ON r_role.id_role = c.id_role
+WHERE r.id_diffusion = 1;
+```
+
+### Vérifier les contraintes d'intégrité
+
+Chacune de ces requêtes doit être refusée par PostgreSQL :
+
+```sql
+-- Un éditeur doit être une personne morale
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES (7, 1, 4, 10);
+
+-- Validation impossible : l'ayant droit n°11 n'est pas validé
+UPDATE oeuvre SET statut = 'VALIDE' WHERE id_oeuvre = 7;
+
+-- Une œuvre diffusée ne peut pas être supprimée
+DELETE FROM oeuvre WHERE id_oeuvre = 1;
+
+-- Le même rôle ne peut pas être attribué deux fois à la même personne sur une œuvre
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES (1, 1, 2, 5);
+```
 
 ## 8. Captures d'écran
 

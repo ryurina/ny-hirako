@@ -1,0 +1,21 @@
+{
+  "name": "ny-hirako-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API REST de ny-hirako (Express + PostgreSQL)",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "dev": "node --env-file=.env --watch src/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1"
+  }
+}

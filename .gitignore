@@ -1,0 +1,21 @@
+# Dépendances
+node_modules/
+
+# Secrets et configuration locale : ne jamais publier
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+
+# Journaux
+*.log
+npm-debug.log*
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
