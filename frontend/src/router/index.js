@@ -6,6 +6,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'accueil', component: () => import('../views/HomeView.vue') },
     { path: '/oeuvres/:id', name: 'oeuvre', component: () => import('../views/OeuvreView.vue'), props: true },
+    { path: '/soumettre', name: 'soumettre', component: () => import('../views/SoumettreView.vue') },
     { path: '/connexion', name: 'connexion', component: () => import('../views/LoginView.vue') },
     // Les pages réservées utiliseront meta: { staff: true } (modérateurs et admins) ou { admin: true }
     { path: '/:pathMatch(.*)*', name: 'introuvable', component: () => import('../views/NotFoundView.vue') },

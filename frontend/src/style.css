@@ -740,3 +740,308 @@ tbody tr:hover td {
   text-align: center;
   padding: 3rem 1.5rem;
 }
+
+/* =====================================================================
+   Formulaire de soumission
+   ===================================================================== */
+.entete-page {
+  margin-bottom: 1.5rem;
+}
+
+.bloc {
+  margin-bottom: 1.25rem;
+}
+
+.bloc h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primaire);
+  color: var(--accent);
+  font-family: var(--police-texte);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.grille-champs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.grille-champs .plein {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .grille-champs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.requis {
+  color: var(--erreur);
+}
+
+.aide {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--texte-doux);
+}
+
+.texte-erreur {
+  color: var(--erreur);
+}
+
+.etiquette {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.35rem;
+}
+
+/* Lignes de contribution */
+.ligne-contribution {
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: #fcfdff;
+  padding: 1rem 1.1rem 1.15rem;
+  margin: 1rem 0;
+}
+
+.ligne-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.ligne-grille {
+  display: grid;
+  grid-template-columns: 190px 1fr 130px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .ligne-grille {
+    grid-template-columns: 1fr;
+  }
+}
+
+.actions-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.actions-formulaire {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1.5rem 0 0;
+}
+
+.erreurs-liste {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+/* Sélecteur d'ayant droit */
+.picker {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.segment {
+  display: inline-flex;
+  justify-self: start;
+  padding: 3px;
+  background: #eef2f7;
+  border-radius: var(--rayon-sm);
+}
+
+.segment button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--texte-doux);
+  padding: 0.35rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.segment button.actif {
+  background: var(--carte);
+  color: var(--primaire);
+  font-weight: 600;
+  box-shadow: var(--ombre-sm);
+}
+
+.selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--succes-fond);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--rayon-sm);
+}
+
+.recherche-personne {
+  position: relative;
+}
+
+.resultats-liste {
+  position: absolute;
+  z-index: 15;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--carte);
+  border: 1px solid var(--bordure-forte);
+  border-radius: var(--rayon-sm);
+  box-shadow: var(--ombre-lg);
+  padding: 0.3rem;
+}
+
+.resultats-liste .aide {
+  padding: 0.5rem 0.65rem;
+  margin: 0;
+}
+
+.resultat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.resultat:hover,
+.resultat:focus-visible {
+  background: var(--secondaire-fond);
+}
+
+.resultat-nom {
+  font-weight: 600;
+  color: var(--primaire);
+}
+
+.resultat-detail {
+  font-size: 0.78rem;
+  color: var(--texte-doux);
+}
+
+.resultat-creer {
+  color: var(--secondaire);
+  font-weight: 600;
+  border-top: 1px solid var(--bordure);
+  border-radius: 0 0 8px 8px;
+  margin-top: 0.25rem;
+}
+
+/* Jauge de répartition */
+.jauge {
+  padding: 1rem 1.1rem;
+  border-radius: var(--rayon-sm);
+  border: 1px solid var(--bordure);
+  background: var(--fond);
+}
+
+.jauge-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.92rem;
+}
+
+.jauge-barre {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.jauge-barre span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.jauge-incomplet {
+  background: var(--attention-fond);
+  border-color: #fcd34d;
+}
+
+.jauge-incomplet .jauge-barre span {
+  background: #d97706;
+}
+
+.jauge-incomplet .jauge-entete span {
+  color: var(--attention);
+}
+
+.jauge-complet {
+  background: var(--succes-fond);
+  border-color: #86efac;
+}
+
+.jauge-complet .jauge-barre span {
+  background: #16a34a;
+}
+
+.jauge-complet .jauge-entete span {
+  color: var(--succes);
+  font-weight: 600;
+}
+
+.jauge-depasse {
+  background: var(--erreur-fond);
+  border-color: #fca5a5;
+}
+
+.jauge-depasse .jauge-barre span {
+  background: #dc2626;
+}
+
+.jauge-depasse .jauge-entete span {
+  color: var(--erreur);
+  font-weight: 600;
+}
+
+.hero-actions {
+  margin: 1.5rem 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jauge-barre span {
+    transition: none;
+  }
+}

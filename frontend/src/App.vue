@@ -25,6 +25,7 @@ function sortir() {
 
       <nav class="navigation" aria-label="Navigation principale">
         <RouterLink :to="{ name: 'accueil' }">Œuvres</RouterLink>
+        <RouterLink :to="{ name: 'soumettre' }">Soumettre une œuvre</RouterLink>
         <template v-if="estConnecte">
           <span class="utilisateur">
             <span>{{ utilisateur.email }}</span>

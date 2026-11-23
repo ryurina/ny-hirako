@@ -61,6 +61,9 @@ onBeforeUnmount(() => clearTimeout(minuteur));
         Retrouvez les œuvres, leurs auteurs, compositeurs, arrangeurs et éditeurs, avec la répartition des parts de
         chacun.
       </p>
+      <p class="hero-actions">
+        <RouterLink class="btn btn-accent" :to="{ name: 'soumettre' }">Soumettre une œuvre</RouterLink>
+      </p>
     </div>
   </section>
 

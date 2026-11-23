@@ -442,7 +442,25 @@ L'application est disponible sur `http://localhost:5173`. L'API doit tourner en 
 |---|---|---|
 | Répertoire des œuvres (recherche) | `/` | Public |
 | Détail d'une œuvre | `/oeuvres/:id` | Public |
+| Formulaire de soumission d'une œuvre | `/soumettre` | Public |
 | Connexion | `/connexion` | Public |
+
+#### Parcours de soumission
+
+Le formulaire public permet à n'importe quel visiteur de proposer une œuvre. Il contrôle en direct que la somme des parts vaut 100 %, et ne révèle jamais l'email du soumetteur.
+
+```mermaid
+flowchart TD
+    A["Visiteur remplit le formulaire<br/>œuvre + ayants droit + parts"] --> B{"Somme des parts = 100 % ?"}
+    B -- non --> A
+    B -- oui --> C["POST /api/oeuvres<br/>(une seule transaction)"]
+    C --> D["Œuvre EN_ATTENTE<br/>+ nouvelles personnes EN_ATTENTE"]
+    D --> E{"Modérateur"}
+    E -- valide --> F["Visible dans le répertoire public"]
+    E -- rejette --> G["Reste masquée"]
+```
+
+Dans le formulaire, un ayant droit existant est recherché par nom ou nom d'artiste ; s'il n'existe pas, il peut être ajouté comme nouvelle personne (elle sera validée par un modérateur). Le rôle « Éditeur » impose une personne morale, conformément à la règle de la base.
 
 ## 7. Création et remplissage de la base
 
