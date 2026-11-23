@@ -55,6 +55,22 @@ flowchart LR
 
 L'intégrité des données est garantie par la base elle-même (contraintes, triggers) : l'API se contente de traduire les erreurs PostgreSQL en réponses HTTP claires.
 
+### Charte graphique
+
+Interface claire et institutionnelle, pensée comme un tableau de bord professionnel pour l'industrie musicale.
+
+| Rôle | Couleur | Usage |
+|---|---|---|
+| Primaire | `#172554` bleu marine | Titres, boutons principaux, bandeau d'accueil |
+| Secondaire | `#3156A6` bleu roi | Liens, focus, barres de répartition |
+| Accent | `#D6A84F` or | Détails distinctifs (jamais pour du texte fin) |
+| Fond | `#F8FAFC` | Arrière-plan des pages |
+| Cartes | `#FFFFFF` | Blocs de contenu |
+| Texte | `#1E293B` | Texte courant |
+| États | vert, ambre, rouge | Succès, attente de validation, erreurs |
+
+Typographie : *Fraunces* (titres) et *Inter* (texte), chargées depuis Google Fonts avec repli automatique sur les polices du système. Toutes les couleurs sont des variables CSS définies en tête de `frontend/src/style.css`. L'interface s'adapte aux écrans d'ordinateur, de tablette et de téléphone.
+
 ## 4. Modèle entité-association
 
 ```mermaid
@@ -239,7 +255,14 @@ ny-hirako/
 │   │   ├── routes/       # routes de l'API
 │   │   └── utils/
 │   └── .env.example
-└── frontend/              # frontend Vue 3 (à venir)
+└── frontend/             # application Vue 3 + Vite
+    ├── vite.config.js    # proxy /api vers l'API Express
+    └── src/
+        ├── api/          # client HTTP (jeton JWT, erreurs)
+        ├── composables/  # état de connexion partagé
+        ├── router/       # routes et protection des pages
+        ├── views/        # pages
+        └── components/   # composants réutilisables
 ```
 
 ### Backend (API)
@@ -407,7 +430,19 @@ L'API traduit les erreurs PostgreSQL en codes HTTP :
 
 ### Frontend
 
-*À compléter.*
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+L'application est disponible sur `http://localhost:5173`. L'API doit tourner en parallèle sur le port 3000 : en développement, Vite redirige automatiquement les appels `/api` vers elle (voir `vite.config.js`), donc aucune configuration supplémentaire n'est nécessaire.
+
+| Page | Adresse | Accès |
+|---|---|---|
+| Répertoire des œuvres (recherche) | `/` | Public |
+| Détail d'une œuvre | `/oeuvres/:id` | Public |
+| Connexion | `/connexion` | Public |
 
 ## 7. Création et remplissage de la base
 
