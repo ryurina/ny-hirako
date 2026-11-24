@@ -16,7 +16,7 @@ const envoi = ref(false);
 // Redirection après connexion : uniquement vers une page interne du site
 function destination() {
   const cible = route.query.redirect;
-  return typeof cible === 'string' && cible.startsWith('/') && !cible.startsWith('//') ? cible : '/';
+  return typeof cible === 'string' && cible.startsWith('/') && !cible.startsWith('//') ? cible : '/gestion';
 }
 
 async function soumettre() {

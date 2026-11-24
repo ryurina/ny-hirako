@@ -260,6 +260,7 @@ ny-hirako/
     └── src/
         ├── api/          # client HTTP (jeton JWT, erreurs)
         ├── composables/  # état de connexion partagé
+        ├── layouts/      # mise en page de l'espace de gestion (barre latérale)
         ├── router/       # routes et protection des pages
         ├── views/        # pages
         └── components/   # composants réutilisables
@@ -299,7 +300,7 @@ curl http://localhost:3000/api/auth/me -H "Authorization: Bearer <jeton>"
 | GET | `/api/oeuvres/:id` | Public | Détail d'une œuvre validée avec ses contributions |
 | POST | `/api/oeuvres` | Public | Formulaire de soumission : crée l'œuvre en `EN_ATTENTE` |
 | GET | `/api/gestion/oeuvres?statut=&q=` | Modérateur / Admin | Liste de toutes les œuvres, tous statuts |
-| GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission |
+| GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission et le statut de chaque ayant droit |
 | POST | `/api/gestion/oeuvres` | Modérateur / Admin | Création directe |
 | PUT | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Modification (les contributions sont remplacées si elles sont fournies) |
 | PATCH | `/api/gestion/oeuvres/:id/statut` | Modérateur / Admin | Validation ou rejet : `{"statut": "VALIDE"}` |
@@ -444,6 +445,18 @@ L'application est disponible sur `http://localhost:5173`. L'API doit tourner en 
 | Détail d'une œuvre | `/oeuvres/:id` | Public |
 | Formulaire de soumission d'une œuvre | `/soumettre` | Public |
 | Connexion | `/connexion` | Public |
+| Tableau de bord (chiffres, éléments à traiter) | `/gestion` | Modérateur / Admin |
+| Œuvres : liste, détail, validation, rejet, suppression | `/gestion/oeuvres`, `/gestion/oeuvres/:id` | Modérateur / Admin |
+| Ayants droit : liste, détail, validation, rejet, suppression | `/gestion/personnes`, `/gestion/personnes/:id` | Modérateur / Admin |
+
+#### Espace de gestion
+
+Après connexion, les modérateurs et administrateurs arrivent sur un tableau de bord à barre latérale (menu fixe sur ordinateur, tiroir sur téléphone) : chiffres clés, soumissions à traiter, puis écrans de validation.
+
+- **Œuvres** et **Ayants droit** : onglets par statut (En attente, Validées, Rejetées, Toutes), recherche, validation ou rejet en un clic. Le filtre est conservé dans l'adresse (`?statut=EN_ATTENTE`).
+- **Fiche d'une œuvre** : répartition des parts avec le statut de chaque ayant droit. Si certains ne sont pas encore validés, un bouton permet de tous les valider avant de valider l'œuvre.
+- Les règles métier restent appliquées par la base (par exemple, une œuvre ne peut pas être validée si la somme des parts n'est pas de 100 %) : l'interface se contente d'afficher le message d'erreur.
+- Les pastilles de la barre latérale indiquent le nombre d'éléments en attente.
 
 #### Parcours de soumission
 
