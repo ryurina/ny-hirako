@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import {
   Validateur,
   validerNouvellePersonne,
-  idDepuisParams,
+  idUuidDepuisParams,
   pagination,
   motifLike,
 } from '../utils/validation.js';
@@ -17,7 +17,7 @@ const STATUTS = ['EN_ATTENTE', 'VALIDE', 'REJETE'];
 // Requêtes de lecture
 // ---------------------------------------------------------------------
 const COLONNES_PUBLIQUES =
-  'o.id_oeuvre, o.titre, o.code_iswc, o.annee_creation, o.genre, o.duree_sec, o.statut';
+  'o.id_oeuvre, o.titre, o.annee_creation, o.genre, o.duree_sec, o.statut';
 // Les modérateurs voient en plus les informations de soumission
 const COLONNES_GESTION = `${COLONNES_PUBLIQUES}, o.soumetteur_email, o.date_soumission, o.id_valideur`;
 
@@ -150,7 +150,6 @@ function validerOeuvre(corps, { creation, emailRequis = false }) {
   const c = corps ?? {};
   const donnees = {
     titre: v.texte(c.titre, 'titre', { requis: true, max: 255 }),
-    code_iswc: v.iswc(c.code_iswc, 'code_iswc'),
     annee_creation: v.entier(c.annee_creation, 'annee_creation', { min: 1800, max: 2100 }),
     genre: v.texte(c.genre, 'genre', { max: 80 }),
     duree_sec: v.entier(c.duree_sec, 'duree_sec', { min: 1 }),
@@ -191,12 +190,11 @@ async function insererContributions(client, idOeuvre, contributions) {
 function creerOeuvre(donnees) {
   return transaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO oeuvre (titre, code_iswc, annee_creation, genre, duree_sec, soumetteur_email)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO oeuvre (titre, annee_creation, genre, duree_sec, soumetteur_email)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id_oeuvre`,
       [
         donnees.titre,
-        donnees.code_iswc,
         donnees.annee_creation,
         donnees.genre,
         donnees.duree_sec,
@@ -224,7 +222,7 @@ oeuvresPubliques.get(
 oeuvresPubliques.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    res.json(await detailOeuvre(idDepuisParams(req.params.id), { gestion: false }));
+    res.json(await detailOeuvre(idUuidDepuisParams(req.params.id), { gestion: false }));
   }),
 );
 
@@ -257,7 +255,7 @@ oeuvresGestion.get(
 oeuvresGestion.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    res.json(await detailOeuvre(idDepuisParams(req.params.id), { gestion: true }));
+    res.json(await detailOeuvre(idUuidDepuisParams(req.params.id), { gestion: true }));
   }),
 );
 
@@ -275,15 +273,15 @@ oeuvresGestion.post(
 oeuvresGestion.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const id = idDepuisParams(req.params.id);
+    const id = idUuidDepuisParams(req.params.id);
     const donnees = validerOeuvre(req.body, { creation: false });
 
     await transaction(async (client) => {
       const { rowCount } = await client.query(
         `UPDATE oeuvre
-         SET titre = $1, code_iswc = $2, annee_creation = $3, genre = $4, duree_sec = $5
-         WHERE id_oeuvre = $6`,
-        [donnees.titre, donnees.code_iswc, donnees.annee_creation, donnees.genre, donnees.duree_sec, id],
+         SET titre = $1, annee_creation = $2, genre = $3, duree_sec = $4
+         WHERE id_oeuvre = $5`,
+        [donnees.titre, donnees.annee_creation, donnees.genre, donnees.duree_sec, id],
       );
       if (rowCount === 0) throw new HttpError(404, 'Œuvre introuvable');
 
@@ -303,7 +301,7 @@ oeuvresGestion.put(
 oeuvresGestion.patch(
   '/:id/statut',
   asyncHandler(async (req, res) => {
-    const id = idDepuisParams(req.params.id);
+    const id = idUuidDepuisParams(req.params.id);
     const v = new Validateur();
     const statut = v.enumeration(req.body?.statut, 'statut', ['VALIDE', 'REJETE'], { requis: true });
     v.lever();
@@ -323,7 +321,7 @@ oeuvresGestion.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     const { rowCount } = await query('DELETE FROM oeuvre WHERE id_oeuvre = $1', [
-      idDepuisParams(req.params.id),
+      idUuidDepuisParams(req.params.id),
     ]);
     if (rowCount === 0) throw new HttpError(404, 'Œuvre introuvable');
     res.status(204).end();

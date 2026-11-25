@@ -110,7 +110,6 @@ onBeforeUnmount(() => clearTimeout(minuteur));
           </div>
           <p class="meta">
             {{ o.annee_creation ?? 'Année inconnue' }} · {{ formaterDuree(o.duree_sec) }}
-            <template v-if="o.code_iswc"> · {{ o.code_iswc }}</template>
           </p>
           <ul class="contributeurs">
             <li v-for="c in o.contributions" :key="c.id_contribution">

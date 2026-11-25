@@ -45,7 +45,6 @@ watch(() => props.id, charger, { immediate: true });
         <ul class="infos">
           <li>Année · <strong>{{ oeuvre.annee_creation ?? 'inconnue' }}</strong></li>
           <li>Durée · <strong>{{ formaterDuree(oeuvre.duree_sec) }}</strong></li>
-          <li v-if="oeuvre.code_iswc">ISWC · <strong class="code">{{ oeuvre.code_iswc }}</strong></li>
         </ul>
       </header>
 

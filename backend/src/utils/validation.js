@@ -1,7 +1,7 @@
 import { HttpError } from '../middleware/errors.js';
 
 const REGEX_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const REGEX_ISWC = /^T-\d{3}\.\d{3}\.\d{3}-\d$/;
+const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const estVide = (valeur) =>
   valeur === undefined || valeur === null || (typeof valeur === 'string' && valeur.trim() === '');
@@ -97,13 +97,15 @@ export class Validateur {
     return email;
   }
 
-  iswc(valeur, champ) {
-    const code = this.texte(valeur, champ, { max: 15 });
-    if (code !== null && !REGEX_ISWC.test(code)) {
-      this.erreur(champ, 'format attendu : T-123.456.789-0');
+  // Identifiant aléatoire (UUID) : 8-4-4-4-12 caractères hexadécimaux, renvoyé en minuscules
+  uuid(valeur, champ, { requis = false } = {}) {
+    const texte = this.texte(valeur, champ, { requis, max: 36 });
+    if (texte === null) return null;
+    if (!REGEX_UUID.test(texte)) {
+      this.erreur(champ, 'identifiant invalide');
       return null;
     }
-    return code;
+    return texte.toLowerCase();
   }
 
   date(valeur, champ, { requis = false } = {}) {
@@ -152,6 +154,14 @@ export function validerNouvellePersonne(v, p, prefixe) {
     if (donnees.date_naissance) v.erreur(champ('date_naissance'), 'interdit pour une personne morale');
   }
   return donnees;
+}
+
+// Identifiant aléatoire (UUID) dans l'URL, sinon 404
+export function idUuidDepuisParams(valeur) {
+  if (!REGEX_UUID.test(String(valeur))) {
+    throw new HttpError(404, 'Ressource introuvable');
+  }
+  return String(valeur).toLowerCase();
 }
 
 // Identifiant dans l'URL : un entier positif, sinon 404

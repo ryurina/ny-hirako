@@ -103,9 +103,8 @@ erDiagram
         string libelle "Auteur, Compositeur, Arrangeur, Éditeur"
     }
     OEUVRE {
-        int id_oeuvre PK
+        uuid id_oeuvre PK
         string titre
-        string code_iswc
         int annee_creation
         string genre
         int duree_sec
@@ -116,7 +115,7 @@ erDiagram
     }
     CONTRIBUTION {
         int id_contribution PK
-        int id_oeuvre FK
+        uuid id_oeuvre FK
         int id_personne FK
         int id_role FK
         decimal part_pct
@@ -129,7 +128,7 @@ erDiagram
     }
     DIFFUSION {
         int id_diffusion PK
-        int id_oeuvre FK
+        uuid id_oeuvre FK
         int id_diffuseur FK
         date date_diffusion
         decimal montant_total
@@ -154,13 +153,14 @@ erDiagram
 - Un triplet (œuvre, personne, rôle) est unique.
 - Seule une personne de type `MORALE` peut avoir le rôle Éditeur.
 - Une œuvre ayant des diffusions ne peut pas être supprimée (`ON DELETE RESTRICT`).
-- `code_iswc` et `email` (utilisateur) sont uniques.
+- `email` (utilisateur) est unique.
 
 ### Choix de modélisation
 
 - **Répartition stockée** : le montant versé à chaque ayant droit est enregistré, ce qui conserve l'historique même si les parts changent plus tard.
 - **Diffuseur séparé** : évite de répéter ses informations dans chaque diffusion.
 - **Une seule entité PERSONNE** : auteurs, compositeurs et éditeurs partagent la même table, distingués par leur rôle sur chaque œuvre.
+- **Identifiant d'œuvre aléatoire (UUID v4)** : `id_oeuvre` est généré par la base (`gen_random_uuid()`) plutôt qu'incrémenté. Les adresses publiques (`/oeuvres/3f2b…`) ne révèlent ni le nombre ni l'ordre des œuvres, et on ne peut pas deviner l'adresse d'une œuvre voisine. Aucun code ISWC n'est stocké : cet identifiant de substitution est la seule clé de l'œuvre.
 
 ## 5. Schéma relationnel et normalisation
 
@@ -171,7 +171,7 @@ Notation : **clé primaire** en gras, `#` pour les clés étrangères.
 - **UTILISATEUR**(**id_utilisateur**, email, mot_de_passe_hash, role_utilisateur)
 - **PERSONNE**(**id_personne**, type, nom, prenom, nom_artiste, date_naissance, telephone, email, ville, statut, #id_valideur → UTILISATEUR)
 - **ROLE**(**id_role**, libelle)
-- **OEUVRE**(**id_oeuvre**, titre, code_iswc, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, #id_valideur → UTILISATEUR)
+- **OEUVRE**(**id_oeuvre**, titre, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, #id_valideur → UTILISATEUR)
 - **CONTRIBUTION**(**id_contribution**, #id_oeuvre → OEUVRE, #id_personne → PERSONNE, #id_role → ROLE, part_pct)
 - **DIFFUSEUR**(**id_diffuseur**, nom, type, ville)
 - **DIFFUSION**(**id_diffusion**, #id_oeuvre → OEUVRE, #id_diffuseur → DIFFUSEUR, date_diffusion, montant_total)
@@ -191,7 +191,7 @@ Notation : **clé primaire** en gras, `#` pour les clés étrangères.
 | REPARTITION.id_diffusion | DIFFUSION | CASCADE | La répartition dépend de la diffusion |
 | REPARTITION.id_contribution | CONTRIBUTION | RESTRICT | Conserver l'historique des paiements |
 
-Contraintes d'unicité : `UTILISATEUR.email`, `ROLE.libelle`, `OEUVRE.code_iswc`, `DIFFUSEUR(nom, ville)`, `CONTRIBUTION(id_oeuvre, id_personne, id_role)`.
+Contraintes d'unicité : `UTILISATEUR.email`, `ROLE.libelle`, `DIFFUSEUR(nom, ville)`, `CONTRIBUTION(id_oeuvre, id_personne, id_role)`.
 
 ### 5.3 Dépendances fonctionnelles
 
@@ -200,7 +200,7 @@ Contraintes d'unicité : `UTILISATEUR.email`, `ROLE.libelle`, `OEUVRE.code_iswc`
 | UTILISATEUR | id_utilisateur → email, mot_de_passe_hash, role_utilisateur ; email → id_utilisateur | id_utilisateur, email |
 | PERSONNE | id_personne → type, nom, prenom, nom_artiste, date_naissance, telephone, email, ville, statut, id_valideur | id_personne |
 | ROLE | id_role → libelle ; libelle → id_role | id_role, libelle |
-| OEUVRE | id_oeuvre → titre, code_iswc, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, id_valideur ; code_iswc → id_oeuvre | id_oeuvre, code_iswc |
+| OEUVRE | id_oeuvre → titre, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, id_valideur | id_oeuvre |
 | CONTRIBUTION | id_contribution → id_oeuvre, id_personne, id_role, part_pct ; (id_oeuvre, id_personne, id_role) → id_contribution, part_pct | id_contribution, (id_oeuvre, id_personne, id_role) |
 | DIFFUSEUR | id_diffuseur → nom, type, ville ; (nom, ville) → id_diffuseur, type | id_diffuseur, (nom, ville) |
 | DIFFUSION | id_diffusion → id_oeuvre, id_diffuseur, date_diffusion, montant_total | id_diffusion |
@@ -297,7 +297,7 @@ curl http://localhost:3000/api/auth/me -H "Authorization: Bearer <jeton>"
 | Méthode | Route | Accès | Description |
 |---|---|---|---|
 | GET | `/api/oeuvres?q=&genre=&annee=&page=&limit=` | Public | Recherche dans les œuvres **validées** (par titre ou par nom d'ayant droit) |
-| GET | `/api/oeuvres/:id` | Public | Détail d'une œuvre validée avec ses contributions |
+| GET | `/api/oeuvres/:id` | Public | Détail d'une œuvre validée avec ses contributions (`:id` est un UUID) |
 | POST | `/api/oeuvres` | Public | Formulaire de soumission : crée l'œuvre en `EN_ATTENTE` |
 | GET | `/api/gestion/oeuvres?statut=&q=` | Modérateur / Admin | Liste de toutes les œuvres, tous statuts |
 | GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission, le statut, le type et le rôle de chaque ayant droit |
@@ -327,7 +327,8 @@ curl -X POST http://localhost:3000/api/oeuvres \
 
 # Modération (avec le jeton obtenu au login dans $TOKEN)
 curl "http://localhost:3000/api/gestion/oeuvres?statut=EN_ATTENTE" -H "Authorization: Bearer $TOKEN"
-curl -X PATCH http://localhost:3000/api/gestion/oeuvres/9/statut \
+# <id_oeuvre> est l'identifiant renvoyé par la soumission ci-dessus
+curl -X PATCH http://localhost:3000/api/gestion/oeuvres/<id_oeuvre>/statut \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"statut": "VALIDE"}'
 ```
@@ -398,17 +399,17 @@ sequenceDiagram
 ```bash
 # Diffuseurs et diffusions existants
 curl http://localhost:3000/api/gestion/diffuseurs -H "Authorization: Bearer $TOKEN"
-curl "http://localhost:3000/api/gestion/diffusions?id_oeuvre=1" -H "Authorization: Bearer $TOKEN"
+curl "http://localhost:3000/api/gestion/diffusions?id_oeuvre=01036840-40db-4276-bf5e-c4a857badb3e" -H "Authorization: Bearer $TOKEN"
 
-# Nouvelle diffusion de l'œuvre 1 : 200 000 Ar -> 80 000 / 80 000 / 40 000
+# Nouvelle diffusion de l'œuvre « Tanindrazako » : 200 000 Ar -> 80 000 / 80 000 / 40 000
 curl -X POST http://localhost:3000/api/gestion/diffusions \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"id_oeuvre": 1, "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 200000}'
+  -d '{"id_oeuvre": "01036840-40db-4276-bf5e-c4a857badb3e", "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 200000}'
 
-# Même chose pour l'œuvre 7, non validée : refusé (422), rien n'est créé
+# Même chose pour « Alina Mamirapiratra », non validée : refusé (422), rien n'est créé
 curl -X POST http://localhost:3000/api/gestion/diffusions \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"id_oeuvre": 7, "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 100000}'
+  -d '{"id_oeuvre": "f9a08ab6-8414-49b2-98f7-ba30fff802d1", "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 100000}'
 
 # Classement des droits et détail pour un ayant droit
 curl http://localhost:3000/api/gestion/droits/personnes -H "Authorization: Bearer $TOKEN"
@@ -423,7 +424,7 @@ L'API traduit les erreurs PostgreSQL en codes HTTP :
 
 | Erreur PostgreSQL | Code HTTP | Exemple |
 |---|---|---|
-| Violation d'unicité | 409 | Code ISWC déjà utilisé |
+| Violation d'unicité | 409 | Diffuseur déjà existant dans la même ville |
 | Clé étrangère : élément encore utilisé | 409 | Suppression d'une œuvre déjà diffusée |
 | Clé étrangère : référence inexistante | 422 | `id_diffuseur` qui n'existe pas |
 | `CHECK` ou trigger | 422 | Somme des parts différente de 100 |
@@ -537,6 +538,23 @@ Les scripts peuvent être relancés : `schema.sql` remet la base à zéro.
 
 Ces comptes servent uniquement à la démonstration.
 
+### Œuvres de démonstration
+
+Les œuvres du jeu de données ont des identifiants UUID fixes : leurs adresses sont donc les mêmes après chaque rechargement du seed.
+
+| Œuvre | Statut | Adresse |
+|---|---|---|
+| Tanindrazako | Validée | `/oeuvres/01036840-40db-4276-bf5e-c4a857badb3e` |
+| Ny Lanitra Manga | Validée | `/oeuvres/2aa54d3f-9654-4100-b80e-bb3f33606271` |
+| Mandihiza Ianao | Validée | `/oeuvres/37e4f819-c044-4bb2-8743-78a40fc3103b` |
+| Fitiavana Mandrakizay | Validée | `/oeuvres/715bcca7-387b-4813-8d39-b4df487b3c05` |
+| Hira ho an'ny Ray aman-dreny | Validée | `/oeuvres/1a60bfe3-2d4a-461d-bb97-ac61744e7ed5` |
+| Sakafo Gasy | Validée | `/oeuvres/271565b5-42ab-49dc-899b-eefb160e9ce6` |
+| Alina Mamirapiratra | En attente | `/oeuvres/f9a08ab6-8414-49b2-98f7-ba30fff802d1` |
+| Rano Mangatsiaka | Rejetée | `/oeuvres/e5d7cdda-e6e3-43b9-99db-f0e08b51fa58` |
+
+Seules les œuvres validées sont accessibles par leur adresse publique ; les deux autres sont visibles dans l'espace de gestion (`/gestion/oeuvres/<identifiant>`).
+
 ### Vérifier que la base est correcte
 
 ```sql
@@ -558,16 +576,16 @@ Chacune de ces requêtes doit être refusée par PostgreSQL :
 
 ```sql
 -- Un éditeur doit être une personne morale
-INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES (7, 1, 4, 10);
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 1, 4, 10);
 
--- Validation impossible : l'ayant droit n°11 n'est pas validé
-UPDATE oeuvre SET statut = 'VALIDE' WHERE id_oeuvre = 7;
+-- Validation impossible : l'ayant droit n°11 (Hanta Rasoanaivo) n'est pas validé
+UPDATE oeuvre SET statut = 'VALIDE' WHERE id_oeuvre = 'f9a08ab6-8414-49b2-98f7-ba30fff802d1';
 
 -- Une œuvre diffusée ne peut pas être supprimée
-DELETE FROM oeuvre WHERE id_oeuvre = 1;
+DELETE FROM oeuvre WHERE id_oeuvre = '01036840-40db-4276-bf5e-c4a857badb3e';
 
 -- Le même rôle ne peut pas être attribué deux fois à la même personne sur une œuvre
-INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES (1, 1, 2, 5);
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('01036840-40db-4276-bf5e-c4a857badb3e', 1, 2, 5);
 ```
 
 ## 8. Captures d'écran

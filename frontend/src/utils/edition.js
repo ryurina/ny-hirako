@@ -31,7 +31,6 @@ export function construireCorpsOeuvre(f, { avecContributions }) {
     genre: f.genre.trim() || null,
     annee_creation: f.annee === '' || f.annee === null || f.annee === undefined ? null : Number(f.annee),
     duree_sec: parserDuree(f.duree) ?? null,
-    code_iswc: f.iswc.trim() || null,
   };
   if (avecContributions) corps.contributions = construireCorps(f).contributions;
   return corps;

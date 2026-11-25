@@ -113,7 +113,6 @@ watch(() => props.id, () => charger(), { immediate: true });
       <ul class="infos">
         <li>Année · <strong>{{ oeuvre.annee_creation ?? 'inconnue' }}</strong></li>
         <li>Durée · <strong>{{ formaterDuree(oeuvre.duree_sec) }}</strong></li>
-        <li v-if="oeuvre.code_iswc">ISWC · <strong class="code">{{ oeuvre.code_iswc }}</strong></li>
         <li>Soumise le · <strong>{{ formaterDate(oeuvre.date_soumission) }}</strong></li>
         <li v-if="oeuvre.soumetteur_email">
           Soumetteur · <a :href="`mailto:${oeuvre.soumetteur_email}`">{{ oeuvre.soumetteur_email }}</a>

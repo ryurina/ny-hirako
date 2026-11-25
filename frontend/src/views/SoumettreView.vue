@@ -35,7 +35,6 @@ const formulaire = reactive({
   genre: '',
   annee: '',
   duree: '',
-  iswc: '',
   email: '',
   lignes: [nouvelleLigne(), nouvelleLigne()],
 });
@@ -113,7 +112,7 @@ async function envoyer() {
 }
 
 function recommencer() {
-  Object.assign(formulaire, { titre: '', genre: '', annee: '', duree: '', iswc: '', email: '', lignes: lignesInitiales() });
+  Object.assign(formulaire, { titre: '', genre: '', annee: '', duree: '', email: '', lignes: lignesInitiales() });
   erreurs.value = [];
   erreurServeur.value = '';
   succes.value = null;
@@ -172,11 +171,6 @@ function recommencer() {
               <label for="sou-duree">Durée</label>
               <input id="sou-duree" v-model="formulaire.duree" type="text" inputmode="numeric" placeholder="3:45" />
               <p class="aide">Format minutes:secondes.</p>
-            </div>
-            <div>
-              <label for="sou-iswc">Code ISWC</label>
-              <input id="sou-iswc" v-model="formulaire.iswc" type="text" maxlength="15" placeholder="T-123.456.789-0" />
-              <p class="aide">Facultatif.</p>
             </div>
           </div>
         </section>

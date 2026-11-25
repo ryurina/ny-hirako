@@ -15,7 +15,7 @@ const roles = ref([]);
 const chargement = ref(true);
 const erreurChargement = ref('');
 
-const formulaire = reactive({ titre: '', genre: '', annee: '', duree: '', iswc: '', email: '', lignes: [] });
+const formulaire = reactive({ titre: '', genre: '', annee: '', duree: '', email: '', lignes: [] });
 const modifierDroits = ref(false);
 
 const erreurs = ref([]);
@@ -35,7 +35,6 @@ async function charger() {
       genre: o.genre ?? '',
       annee: o.annee_creation ?? '',
       duree: secondesVersTexte(o.duree_sec),
-      iswc: o.code_iswc ?? '',
       email: '',
       lignes: lignesDepuisContributions(o.contributions),
     });
@@ -115,10 +114,6 @@ watch(() => props.id, charger, { immediate: true });
           <label for="edit-duree">Durée</label>
           <input id="edit-duree" v-model="formulaire.duree" type="text" inputmode="numeric" placeholder="3:45" />
           <p class="aide">Format minutes:secondes.</p>
-        </div>
-        <div>
-          <label for="edit-iswc">Code ISWC</label>
-          <input id="edit-iswc" v-model="formulaire.iswc" type="text" maxlength="15" placeholder="T-123.456.789-0" />
         </div>
       </div>
     </section>

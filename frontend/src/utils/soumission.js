@@ -2,7 +2,6 @@
 // Les parts sont manipulées en centièmes de pourcent (entiers) pour éviter les erreurs d'arrondi.
 
 const REGEX_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const REGEX_ISWC = /^T-\d{3}\.\d{3}\.\d{3}-\d$/;
 const REGEX_DUREE = /^(\d{1,3}):([0-5]\d)$/;
 
 // "3:45" -> 225 secondes (null si le format est invalide)
@@ -55,10 +54,6 @@ export function validerSoumission(f, { avecEmail = true, avecContributions = tru
     if (!Number.isInteger(annee) || annee < 1800 || annee > 2100) {
       erreurs.push('L’année doit être comprise entre 1800 et 2100.');
     }
-  }
-
-  if (f.iswc.trim() && !REGEX_ISWC.test(f.iswc.trim())) {
-    erreurs.push('Le code ISWC doit avoir le format T-123.456.789-0.');
   }
 
   if (avecEmail) {
@@ -133,6 +128,5 @@ export function construireCorps(f) {
   if (f.annee !== '' && f.annee !== null && f.annee !== undefined) corps.annee_creation = Number(f.annee);
   const duree = parserDuree(f.duree);
   if (duree) corps.duree_sec = duree;
-  if (f.iswc.trim()) corps.code_iswc = f.iswc.trim();
   return corps;
 }

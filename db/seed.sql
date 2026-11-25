@@ -1,7 +1,8 @@
 -- =====================================================================
 -- ny-hirako : données d'exemple (toutes fictives)
 -- Usage : psql -d nyhirako -f db/seed.sql   (après db/schema.sql)
--- Les personnes, titres, codes ISWC et diffuseurs sont inventés.
+-- Les personnes, titres et diffuseurs sont inventés. Les œuvres ont des identifiants UUID fixes
+-- afin que les adresses de démonstration soient identiques après chaque rechargement.
 -- Les mots de passe de démonstration sont hachés avec bcrypt (pgcrypto).
 -- =====================================================================
 
@@ -45,51 +46,51 @@ INSERT INTO personne (id_personne, type, nom, prenom, nom_artiste, date_naissanc
 -- ---------------------------------------------------------------------
 -- Œuvres
 -- ---------------------------------------------------------------------
-INSERT INTO oeuvre (id_oeuvre, titre, code_iswc, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, id_valideur) VALUES
-    (1, 'Tanindrazako',          'T-345.678.901-2', 2018, 'Malagasy pop',   232, 'VALIDE', NULL,                '2026-01-05', 1),
-    (2, 'Ny Lanitra Manga',      'T-345.678.902-3', 2021, 'Salegy',         198, 'VALIDE', NULL,                '2026-01-05', 1),
-    (3, 'Mandihiza Ianao',       'T-345.678.903-4', 2019, 'Tsapiky',        245, 'VALIDE', NULL,                '2026-01-06', 2),
-    (4, 'Fitiavana Mandrakizay', 'T-345.678.904-5', 2016, 'Afindrafindrao', 260, 'VALIDE', NULL,                '2026-01-06', 2),
-    (5, 'Hira ho an''ny Ray aman-dreny', 'T-345.678.905-6', 2015, 'Hira gasy', 300, 'VALIDE', NULL,           '2026-01-07', 1),
-    (6, 'Sakafo Gasy',           'T-345.678.906-7', 2022, 'Salegy',         187, 'VALIDE', NULL,                '2026-01-07', 2),
+INSERT INTO oeuvre (id_oeuvre, titre, annee_creation, genre, duree_sec, statut, soumetteur_email, date_soumission, id_valideur) VALUES
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 'Tanindrazako', 2018, 'Malagasy pop',   232, 'VALIDE', NULL,                '2026-01-05', 1),
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 'Ny Lanitra Manga', 2021, 'Salegy',         198, 'VALIDE', NULL,                '2026-01-05', 1),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 'Mandihiza Ianao', 2019, 'Tsapiky',        245, 'VALIDE', NULL,                '2026-01-06', 2),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 'Fitiavana Mandrakizay', 2016, 'Afindrafindrao', 260, 'VALIDE', NULL,                '2026-01-06', 2),
+    ('1a60bfe3-2d4a-461d-bb97-ac61744e7ed5', 'Hira ho an''ny Ray aman-dreny', 2015, 'Hira gasy', 300, 'VALIDE', NULL,           '2026-01-07', 1),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 'Sakafo Gasy', 2022, 'Salegy',         187, 'VALIDE', NULL,                '2026-01-07', 2),
     -- Soumise via le formulaire public, en attente de modération
-    (7, 'Alina Mamirapiratra',   NULL,              2024, 'Malagasy pop',   205, 'EN_ATTENTE', 'hanta@example.com', '2026-11-10', NULL),
+    ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 'Alina Mamirapiratra', 2024, 'Malagasy pop',   205, 'EN_ATTENTE', 'hanta@example.com', '2026-11-10', NULL),
     -- Soumission rejetée
-    (8, 'Rano Mangatsiaka',      NULL,              2023, 'Beko',           176, 'REJETE', 'anonyme@example.com',   '2026-10-02', 2);
+    ('e5d7cdda-e6e3-43b9-99db-f0e08b51fa58', 'Rano Mangatsiaka', 2023, 'Beko',           176, 'REJETE', 'anonyme@example.com',   '2026-10-02', 2);
 
 -- ---------------------------------------------------------------------
 -- Contributions (la somme des parts vaut 100 pour chaque œuvre validée)
 -- ---------------------------------------------------------------------
 INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES
     -- 1 Tanindrazako
-    (1, 1, 2, 40.00),   -- Hery : compositeur
-    (1, 2, 1, 40.00),   -- Voahangy : auteur
-    (1, 9, 4, 20.00),   -- Éditions Ravinala : éditeur
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 1, 2, 40.00),   -- Hery : compositeur
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 2, 1, 40.00),   -- Voahangy : auteur
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 9, 4, 20.00),   -- Éditions Ravinala : éditeur
     -- 2 Ny Lanitra Manga
-    (2, 4, 1, 25.00),   -- Njaka : auteur
-    (2, 4, 2, 35.00),   -- Njaka : compositeur (même personne, autre rôle)
-    (2, 7, 3, 10.00),   -- Fenitra : arrangeur
-    (2, 10, 4, 30.00),  -- Maso Music : éditeur
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 4, 1, 25.00),   -- Njaka : auteur
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 4, 2, 35.00),   -- Njaka : compositeur (même personne, autre rôle)
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 7, 3, 10.00),   -- Fenitra : arrangeur
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 10, 4, 30.00),  -- Maso Music : éditeur
     -- 3 Mandihiza Ianao
-    (3, 5, 1, 30.00),
-    (3, 3, 2, 50.00),
-    (3, 10, 4, 20.00),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 5, 1, 30.00),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 3, 2, 50.00),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 10, 4, 20.00),
     -- 4 Fitiavana Mandrakizay
-    (4, 6, 1, 35.00),
-    (4, 1, 2, 35.00),
-    (4, 2, 3, 10.00),
-    (4, 9, 4, 20.00),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 6, 1, 35.00),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 1, 2, 35.00),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 2, 3, 10.00),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 9, 4, 20.00),
     -- 5 Hira ho an'ny Ray aman-dreny (sans éditeur)
-    (5, 8, 1, 50.00),
-    (5, 8, 2, 50.00),
+    ('1a60bfe3-2d4a-461d-bb97-ac61744e7ed5', 8, 1, 50.00),
+    ('1a60bfe3-2d4a-461d-bb97-ac61744e7ed5', 8, 2, 50.00),
     -- 6 Sakafo Gasy
-    (6, 3, 1, 20.00),
-    (6, 7, 2, 40.00),
-    (6, 4, 3, 10.00),
-    (6, 10, 4, 30.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 3, 1, 20.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 7, 2, 40.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 4, 3, 10.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 10, 4, 30.00),
     -- 7 Alina Mamirapiratra (en attente : Hanta n'est pas encore validée)
-    (7, 11, 1, 50.00),
-    (7, 7, 2, 50.00);
+    ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 11, 1, 50.00),
+    ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 7, 2, 50.00);
 
 -- ---------------------------------------------------------------------
 -- Diffuseurs
@@ -105,18 +106,18 @@ INSERT INTO diffuseur (id_diffuseur, nom, type, ville) VALUES
 -- Diffusions (montants en Ariary)
 -- ---------------------------------------------------------------------
 INSERT INTO diffusion (id_oeuvre, id_diffuseur, date_diffusion, montant_total) VALUES
-    (1, 1, '2026-01-15',  120000.00),
-    (1, 2, '2026-02-03',  350000.00),
-    (2, 3, '2026-02-20',   90000.00),
-    (2, 5, '2026-07-12', 1500000.00),
-    (3, 1, '2026-03-08',  110000.00),
-    (3, 4, '2026-04-18',  600000.00),
-    (4, 2, '2026-05-02',  400000.00),
-    (5, 5, '2026-07-12',  900000.00),
-    (5, 1, '2026-06-21',   95000.00),
-    (6, 3, '2026-08-09',   85000.00),
-    (6, 4, '2026-09-27',  700000.00),
-    (1, 5, '2026-07-13', 1100000.00);
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 1, '2026-01-15',  120000.00),
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 2, '2026-02-03',  350000.00),
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 3, '2026-02-20',   90000.00),
+    ('2aa54d3f-9654-4100-b80e-bb3f33606271', 5, '2026-07-12', 1500000.00),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 1, '2026-03-08',  110000.00),
+    ('37e4f819-c044-4bb2-8743-78a40fc3103b', 4, '2026-04-18',  600000.00),
+    ('715bcca7-387b-4813-8d39-b4df487b3c05', 2, '2026-05-02',  400000.00),
+    ('1a60bfe3-2d4a-461d-bb97-ac61744e7ed5', 5, '2026-07-12',  900000.00),
+    ('1a60bfe3-2d4a-461d-bb97-ac61744e7ed5', 1, '2026-06-21',   95000.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 3, '2026-08-09',   85000.00),
+    ('271565b5-42ab-49dc-899b-eefb160e9ce6', 4, '2026-09-27',  700000.00),
+    ('01036840-40db-4276-bf5e-c4a857badb3e', 5, '2026-07-13', 1100000.00);
 
 -- ---------------------------------------------------------------------
 -- Répartition des droits pour chaque diffusion
@@ -129,7 +130,6 @@ SELECT calculer_repartition(id_diffusion) FROM diffusion ORDER BY id_diffusion;
 SELECT setval(pg_get_serial_sequence('utilisateur', 'id_utilisateur'), (SELECT MAX(id_utilisateur) FROM utilisateur));
 SELECT setval(pg_get_serial_sequence('role',        'id_role'),        (SELECT MAX(id_role)        FROM role));
 SELECT setval(pg_get_serial_sequence('personne',    'id_personne'),    (SELECT MAX(id_personne)    FROM personne));
-SELECT setval(pg_get_serial_sequence('oeuvre',      'id_oeuvre'),      (SELECT MAX(id_oeuvre)      FROM oeuvre));
 SELECT setval(pg_get_serial_sequence('diffuseur',   'id_diffuseur'),   (SELECT MAX(id_diffuseur)   FROM diffuseur));
 
 COMMIT;

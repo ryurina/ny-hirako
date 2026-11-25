@@ -50,9 +50,9 @@ function validerDiffusion(corps, { creation }) {
     montant_total: v.montant(c.montant_total, 'montant_total', { requis: true }),
   };
   if (creation) {
-    donnees.id_oeuvre = v.entier(c.id_oeuvre, 'id_oeuvre', { requis: true, min: 1 });
+    donnees.id_oeuvre = v.uuid(c.id_oeuvre, 'id_oeuvre', { requis: true });
   } else {
-    donnees.id_oeuvre = v.entier(c.id_oeuvre, 'id_oeuvre', { min: 1 }); // facultatif, non modifiable
+    donnees.id_oeuvre = v.uuid(c.id_oeuvre, 'id_oeuvre'); // facultatif, non modifiable
   }
   v.lever();
   return donnees;
@@ -64,7 +64,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const v = new Validateur();
     const filtres = {
-      id_oeuvre: v.entier(req.query.id_oeuvre, 'id_oeuvre', { min: 1 }),
+      id_oeuvre: v.uuid(req.query.id_oeuvre, 'id_oeuvre'),
       id_diffuseur: v.entier(req.query.id_diffuseur, 'id_diffuseur', { min: 1 }),
       date_debut: v.date(req.query.date_debut, 'date_debut'),
       date_fin: v.date(req.query.date_fin, 'date_fin'),
