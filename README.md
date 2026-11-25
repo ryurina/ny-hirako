@@ -4,6 +4,46 @@
 
 *Projet final : Application web avec une base de données relationnelle (échéance : 27 novembre 2026).*
 
+## Sommaire
+
+1. [Problème et objectifs](#1-problème-et-objectifs)
+2. [Acteurs et fonctionnalités](#2-acteurs-et-fonctionnalités)
+3. [Technologies et justification](#3-technologies-et-justification)
+4. [Modèle entité-association](#4-modèle-entité-association)
+5. [Schéma relationnel et normalisation](#5-schéma-relationnel-et-normalisation)
+6. [Installation et lancement](#6-installation-et-lancement)
+7. [Captures d'écran](#7-captures-décran)
+8. [Tests et démonstration](#8-tests-et-démonstration)
+9. [Référence de l'API](#9-référence-de-lapi)
+
+### Démarrage rapide
+
+Avec Node.js (20.6 ou plus) et PostgreSQL (13 ou plus) installés et PostgreSQL démarré :
+
+```bash
+git clone https://github.com/<votre-compte>/ny-hirako.git && cd ny-hirako
+
+# Base de données
+createdb nyhirako
+psql -d nyhirako -f db/schema.sql
+psql -d nyhirako -f db/seed.sql
+
+# API (terminal 1)
+cd backend
+npm install
+cp .env.example .env
+sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
+npm run dev
+
+# Site (terminal 2)
+cd frontend
+npm install
+npm run dev
+```
+
+Ouvrir ensuite <http://localhost:5173>. Compte administrateur de démonstration : `admin@nyhirako.example` / `Admin123!`.
+Le détail de chaque étape, les variantes et le dépannage sont en [section 6](#6-installation-et-lancement).
+
 ## 1. Problème et objectifs
 
 Les auteurs, compositeurs, arrangeurs et éditeurs malagasy n'ont pas d'outil simple pour :
@@ -37,7 +77,69 @@ stateDiagram-v2
 
 Une œuvre ne peut être validée que si la somme des parts de ses contributions vaut 100 et si tous ses ayants droit sont déjà validés.
 
-## 3. Stack technique
+### Pages de l'application
+
+| Page | Adresse | Accès |
+|---|---|---|
+| Répertoire des œuvres (recherche) | `/` | Public |
+| Détail d'une œuvre | `/oeuvres/:id` | Public |
+| Formulaire de soumission d'une œuvre | `/soumettre` | Public |
+| Connexion | `/connexion` | Public |
+| Tableau de bord (chiffres, éléments à traiter) | `/gestion` | Modérateur / Admin |
+| Œuvres : liste, détail, validation, rejet, suppression | `/gestion/oeuvres`, `/gestion/oeuvres/:id` | Modérateur / Admin |
+| Ayants droit : liste, détail, validation, rejet, suppression | `/gestion/personnes`, `/gestion/personnes/:id` | Modérateur / Admin |
+| Modifier une œuvre (informations, ayants droit et parts) | `/gestion/oeuvres/:id/modifier` | Modérateur / Admin |
+| Modifier un ayant droit | `/gestion/personnes/:id/modifier` | Modérateur / Admin |
+| Diffuseurs : liste, création, modification, suppression | `/gestion/diffuseurs` | Admin |
+| Diffusions : liste filtrée, détail, modification, recalcul, suppression | `/gestion/diffusions`, `/gestion/diffusions/:id` | Admin |
+| Nouvelle diffusion avec aperçu de la répartition | `/gestion/diffusions/nouvelle` | Admin |
+| Droits perçus : classement et détail par ayant droit | `/gestion/droits`, `/gestion/droits/:id` | Admin |
+
+#### Espace de gestion
+
+Après connexion, les modérateurs et administrateurs arrivent sur un tableau de bord à barre latérale (menu fixe sur ordinateur, tiroir sur téléphone) : chiffres clés, soumissions à traiter, puis écrans de validation.
+
+- **Œuvres** et **Ayants droit** : onglets par statut (En attente, Validées, Rejetées, Toutes), recherche, validation ou rejet en un clic. Le filtre est conservé dans l'adresse (`?statut=EN_ATTENTE`).
+- **Fiche d'une œuvre** : répartition des parts avec le statut de chaque ayant droit. Si certains ne sont pas encore validés, un bouton permet de tous les valider avant de valider l'œuvre.
+- Les règles métier restent appliquées par la base (par exemple, une œuvre ne peut pas être validée si la somme des parts n'est pas de 100 %) : l'interface se contente d'afficher le message d'erreur.
+- Les pastilles de la barre latérale indiquent le nombre d'éléments en attente.
+- **Modification** : depuis la fiche d'une œuvre ou d'un ayant droit, le bouton « Modifier » ouvre un formulaire pré-rempli. Pour une œuvre, la répartition des parts est modifiable avec la même jauge que le formulaire de soumission ; elle est refusée par la base si des droits ont déjà été répartis (l'historique des paiements est protégé), auquel cas seules les informations de l'œuvre peuvent changer.
+
+#### Administration : de la diffusion aux droits
+
+Les pages liées à l'argent sont réservées aux administrateurs (un modérateur qui tape l'adresse est redirigé vers le tableau de bord, et l'API refuse de toute façon avec un code 403).
+
+```mermaid
+flowchart LR
+    A["Diffuseur<br/>radio, TV, salle, événement"] --> C
+    B["Œuvre validée<br/>et ses parts"] --> C["Diffusion<br/>date + montant"]
+    C -->|"calculer_repartition()"| D["Répartition<br/>un montant par contribution"]
+    D --> E["Droits perçus<br/>classement par ayant droit"]
+```
+
+- **Nouvelle diffusion** : après le choix de l'œuvre, du diffuseur, de la date et du montant, un **aperçu** montre ce que percevra chaque ayant droit avant l'enregistrement. Le calcul de l'aperçu reproduit exactement celui de la base (part × montant ÷ 100, arrondi au centime).
+- **Détail d'une diffusion** : montant, total réparti et éventuel écart d'arrondi. Modifier le montant recalcule la répartition ; l'œuvre, elle, n'est pas modifiable (la répartition en dépend).
+- **Droits perçus** : classement des ayants droit validés avec barres proportionnelles, puis détail diffusion par diffusion.
+- Les montants sont en Ariary.
+
+#### Parcours de soumission
+
+Le formulaire public permet à n'importe quel visiteur de proposer une œuvre. Il contrôle en direct que la somme des parts vaut 100 %, et ne révèle jamais l'email du soumetteur.
+
+```mermaid
+flowchart TD
+    A["Visiteur remplit le formulaire<br/>œuvre + ayants droit + parts"] --> B{"Somme des parts = 100 % ?"}
+    B -- non --> A
+    B -- oui --> C["POST /api/oeuvres<br/>(une seule transaction)"]
+    C --> D["Œuvre EN_ATTENTE<br/>+ nouvelles personnes EN_ATTENTE"]
+    D --> E{"Modérateur"}
+    E -- valide --> F["Visible dans le répertoire public"]
+    E -- rejette --> G["Reste masquée"]
+```
+
+Dans le formulaire, un ayant droit existant est recherché par nom ou nom d'artiste ; s'il n'existe pas, il peut être ajouté comme nouvelle personne (elle sera validée par un modérateur). Le rôle « Éditeur » impose une personne morale, conformément à la règle de la base.
+
+## 3. Technologies et justification
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -54,6 +156,16 @@ flowchart LR
 ```
 
 L'intégrité des données est garantie par la base elle-même (contraintes, triggers) : l'API se contente de traduire les erreurs PostgreSQL en réponses HTTP claires.
+
+### Justification des choix
+
+| Choix | Pourquoi il convient à ce projet |
+|---|---|
+| **PostgreSQL** | Les règles du projet sont des règles d'intégrité (la somme des parts d'une œuvre vaut 100 %, un éditeur est une personne morale, une œuvre n'est publique que si ses ayants droit sont validés…). PostgreSQL permet de les écrire **dans la base** (`CHECK`, triggers, contraintes différées jusqu'au `COMMIT`), donc elles sont respectées quel que soit le programme qui écrit. Il fournit aussi les types énumérés (statuts), les identifiants `UUID`, les transactions et les fonctions SQL (calcul des droits). |
+| **SQL écrit à la main, sans ORM** | Le sujet porte sur la base relationnelle : le schéma, les contraintes, les triggers et les requêtes restent lisibles et expliqués dans `db/schema.sql` et dans l'API. |
+| **Express (Node.js)** | API REST simple, qui valide les données reçues et traduit les erreurs de la base en codes HTTP clairs (409, 422…). |
+| **Vue 3 + Vite** | Interface réactive : jauge de répartition et aperçu des droits calculés en direct, composants réutilisables, rechargement instantané en développement. |
+| **JWT + bcrypt** | Authentification sans état pour les modérateurs et administrateurs ; les mots de passe sont hachés par la base (`pgcrypto`) et vérifiés par l'API. |
 
 ### Charte graphique
 
@@ -232,65 +344,326 @@ Certaines règles métier ne s'expriment pas par une dépendance fonctionnelle e
 
 ## 6. Installation et lancement
 
-### Prérequis
+### 6.1 Prérequis
 
-- Node.js 20.6 ou plus
-- PostgreSQL 13 ou plus, avec la base créée et remplie (voir section 7)
+| Outil | Version | Vérification |
+|---|---|---|
+| Node.js | 20.6 ou plus | `node -v` |
+| npm | 9 ou plus | `npm -v` |
+| PostgreSQL | 13 ou plus (serveur démarré et client `psql`) | `psql --version` |
+| Git | toute version récente | `git --version` |
 
-### Structure du dépôt
+Le serveur PostgreSQL doit tourner avant de continuer (par exemple `sudo systemctl start postgresql` sous Linux).
 
-```
-ny-hirako/
-├── db/
-│   ├── schema.sql        # création de la base
-│   ├── seed.sql          # données d'exemple
-│   └── migrations/       # modifications à appliquer sur une base existante
-├── backend/              # API Express
-│   ├── src/
-│   │   ├── config.js     # variables d'environnement
-│   │   ├── db.js         # pool PostgreSQL et transactions
-│   │   ├── app.js        # application Express
-│   │   ├── index.js      # démarrage du serveur
-│   │   ├── middleware/   # authentification JWT, gestion des erreurs
-│   │   ├── routes/       # routes de l'API
-│   │   └── utils/
-│   └── .env.example
-└── frontend/             # application Vue 3 + Vite
-    ├── vite.config.js    # proxy /api vers l'API Express
-    └── src/
-        ├── api/          # client HTTP (jeton JWT, erreurs)
-        ├── composables/  # état de connexion partagé
-        ├── layouts/      # mise en page de l'espace de gestion (barre latérale)
-        ├── router/       # routes et protection des pages
-        ├── views/        # pages
-        └── components/   # composants réutilisables
+### 6.2 Récupérer le projet
+
+```bash
+git clone https://github.com/<votre-compte>/ny-hirako.git
+cd ny-hirako
 ```
 
-### Backend (API)
+### 6.3 Créer et remplir la base
+
+```bash
+# 1. Créer la base vide
+createdb nyhirako            # ou : sudo -u postgres createdb nyhirako
+
+# 2. Créer les types, tables, contraintes, triggers et fonctions (remet la base à zéro)
+psql -d nyhirako -f db/schema.sql
+
+# 3. Charger les données d'exemple
+psql -d nyhirako -f db/seed.sql
+```
+
+Si `psql` demande un utilisateur ou refuse la connexion, ajouter les options de connexion, par exemple `-U postgres -h localhost`, ou préfixer par `sudo -u postgres`.
+
+| Script | Rôle |
+|---|---|
+| `db/schema.sql` | Supprime puis recrée tout : types énumérés, tables, index, triggers, fonction `calculer_repartition` et vue `vue_droits_par_personne`. Peut être relancé pour repartir de zéro. |
+| `db/seed.sql` | Données d'exemple fictives : 2 comptes, 11 ayants droit, 8 œuvres, 5 diffuseurs, 12 diffusions, et la répartition des droits correspondante. |
+
+Vérification : `psql -d nyhirako -c "SELECT titre, statut FROM oeuvre ORDER BY titre;"` doit afficher 8 œuvres.
+
+*Variante avec Docker* (si PostgreSQL n'est pas installé) :
+
+```bash
+docker run --name nyhirako-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=nyhirako -p 5432:5432 -d postgres:16
+psql -h localhost -U postgres -d nyhirako -f db/schema.sql
+psql -h localhost -U postgres -d nyhirako -f db/seed.sql
+```
+
+Dans ce cas, `DATABASE_URL` vaut `postgresql://postgres:postgres@localhost:5432/nyhirako`.
+
+### 6.4 Lancer l'API
 
 ```bash
 cd backend
-npm install express pg bcryptjs jsonwebtoken cors
-cp .env.example .env      # puis adapter DATABASE_URL et JWT_SECRET
+npm install
+cp .env.example .env
+```
+
+Éditer ensuite `backend/.env` :
+
+| Variable | Rôle | Valeur par défaut |
+|---|---|---|
+| `DATABASE_URL` | Connexion à PostgreSQL. Ajouter `utilisateur:motdepasse@` devant `localhost` si nécessaire. | `postgresql://localhost:5432/nyhirako` |
+| `JWT_SECRET` | Secret de signature des jetons de connexion. **À remplacer** par une chaîne aléatoire : `openssl rand -hex 32` | à définir |
+| `JWT_EXPIRES_IN` | Durée de validité d'une session | `8h` |
+| `PORT` | Port de l'API | `3000` |
+| `CORS_ORIGIN` | Adresse du site (plusieurs possibles, séparées par des virgules) | `http://localhost:5173` |
+
+Démarrer l'API :
+
+```bash
+npm run dev      # rechargement automatique ; en production : npm start
+```
+
+Contrôle : `curl http://localhost:3000/api/health` doit répondre `{"status":"ok","db":"ok"}`.
+
+### 6.5 Lancer le site
+
+Dans un second terminal, l'API restant démarrée :
+
+```bash
+cd frontend
+npm install
 npm run dev
 ```
 
-L'API écoute par défaut sur `http://localhost:3000`.
+Le site est disponible sur <http://localhost:5173>. En développement, Vite redirige les appels `/api` vers l'API (voir `frontend/vite.config.js`) : aucune configuration supplémentaire n'est nécessaire.
 
-### Tester l'API
+### 6.6 Comptes de démonstration
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| Administrateur | `admin@nyhirako.example` | `Admin123!` |
+| Modérateur | `moderateur@nyhirako.example` | `Moderateur123!` |
+
+Les visiteurs n'ont pas de compte : ils consultent le répertoire et soumettent des œuvres. Ces identifiants servent uniquement à la démonstration.
+
+### 6.7 Œuvres de démonstration
+
+Les œuvres du jeu de données ont des identifiants UUID fixes : leurs adresses sont donc les mêmes après chaque rechargement du seed.
+
+| Œuvre | Statut | Adresse |
+|---|---|---|
+| Tanindrazako | Validée | `/oeuvres/01036840-40db-4276-bf5e-c4a857badb3e` |
+| Ny Lanitra Manga | Validée | `/oeuvres/2aa54d3f-9654-4100-b80e-bb3f33606271` |
+| Mandihiza Ianao | Validée | `/oeuvres/37e4f819-c044-4bb2-8743-78a40fc3103b` |
+| Fitiavana Mandrakizay | Validée | `/oeuvres/715bcca7-387b-4813-8d39-b4df487b3c05` |
+| Hira ho an'ny Ray aman-dreny | Validée | `/oeuvres/1a60bfe3-2d4a-461d-bb97-ac61744e7ed5` |
+| Sakafo Gasy | Validée | `/oeuvres/271565b5-42ab-49dc-899b-eefb160e9ce6` |
+| Alina Mamirapiratra | En attente | `/oeuvres/f9a08ab6-8414-49b2-98f7-ba30fff802d1` |
+| Rano Mangatsiaka | Rejetée | `/oeuvres/e5d7cdda-e6e3-43b9-99db-f0e08b51fa58` |
+
+Seules les œuvres validées sont accessibles par leur adresse publique ; les deux autres sont visibles dans l'espace de gestion (`/gestion/oeuvres/<identifiant>`).
+
+### 6.8 Dépannage
+
+| Symptôme | Cause probable | Solution |
+|---|---|---|
+| `connection refused` ou `ECONNREFUSED` sur le port 5432 | PostgreSQL n'est pas démarré | `sudo systemctl start postgresql`, puis `pg_lsclusters` ou `systemctl status postgresql` |
+| `password authentication failed` | La base exige un mot de passe | Renseigner `utilisateur:motdepasse@` dans `DATABASE_URL` |
+| `Variable d'environnement manquante : JWT_SECRET` | Le fichier `.env` n'existe pas ou est incomplet | `cp .env.example .env` puis renseigner `JWT_SECRET` |
+| `permission denied to create extension "pgcrypto"` | Droits insuffisants | Lancer `schema.sql` avec un utilisateur propriétaire de la base ou administrateur |
+| `function gen_random_uuid() does not exist` | PostgreSQL antérieur à la version 13 | Installer PostgreSQL 13 ou plus |
+| `node: bad option: --env-file` | Node.js trop ancien | Installer Node.js 20.6 ou plus |
+| `EADDRINUSE` (port 3000 déjà utilisé) | Un autre programme occupe le port | Changer `PORT` dans `.env` et la cible du proxy dans `frontend/vite.config.js` |
+| Le site affiche « Impossible de joindre l'API » | L'API n'est pas lancée | Démarrer `npm run dev` dans `backend/` |
+| Les accents s'affichent mal dans `psql` | Encodage du terminal | `export PGCLIENTENCODING=UTF8` avant de lancer les scripts |
+
+### 6.9 Structure du dépôt
+
+```
+ny-hirako/
+├── README.md
+├── .gitignore
+├── db/
+│   ├── schema.sql             # création de la base : types, tables, contraintes, triggers, fonctions
+│   ├── seed.sql               # données d'exemple fictives
+│   └── migrations/            # modifications à appliquer sur une base existante
+├── backend/                   # API REST (Express)
+│   ├── .env.example           # modèle de configuration
+│   ├── src/
+│   │   ├── index.js, app.js, config.js, db.js
+│   │   ├── middleware/        # authentification JWT, gestion des erreurs
+│   │   ├── routes/            # auth, oeuvres, personnes, roles, diffuseurs, diffusions, droits
+│   │   └── utils/             # validation des données reçues
+│   └── tests/                 # tests automatisés de la validation
+├── frontend/                  # site (Vue 3 + Vite)
+│   ├── vite.config.js         # proxy /api vers l'API
+│   ├── src/
+│   │   ├── api/               # client HTTP (jeton JWT, erreurs)
+│   │   ├── composables/       # état partagé (connexion, statistiques)
+│   │   ├── router/            # routes et protection des pages
+│   │   ├── layouts/           # mise en page de l'espace de gestion
+│   │   ├── views/             # pages (publiques et de gestion)
+│   │   ├── components/        # composants réutilisables
+│   │   └── utils/             # logique métier (calcul des droits, validation des formulaires)
+│   └── tests/                 # tests automatisés de la logique métier
+└── docs/
+    └── captures/              # captures d'écran utilisées dans ce README
+```
+
+## 7. Captures d'écran
+
+Les captures correspondent au jeu de données d'exemple (section 6.3) et au scénario de la [section 8](#8-tests-et-démonstration).
+
+### Espace public
+
+![Répertoire des œuvres : recherche par titre, ayant droit, genre ou année](docs/captures/01-repertoire.png)
+*Répertoire des œuvres : recherche par titre, ayant droit, genre ou année*
+
+![Fiche d'une œuvre : répartition des droits entre ses ayants droit](docs/captures/02-fiche-oeuvre.png)
+*Fiche d'une œuvre : répartition des droits entre ses ayants droit*
+
+![Formulaire de soumission : jauge de répartition indiquant que la somme des parts atteint 100 %](docs/captures/03-soumission.png)
+*Formulaire de soumission : jauge de répartition indiquant que la somme des parts atteint 100 %*
+
+![Connexion réservée aux modérateurs et administrateurs](docs/captures/04-connexion.png)
+*Connexion réservée aux modérateurs et administrateurs*
+
+### Espace de gestion (modérateurs et administrateurs)
+
+![Tableau de bord : chiffres clés et éléments à traiter](docs/captures/05-tableau-de-bord.png)
+*Tableau de bord : chiffres clés et éléments à traiter*
+
+![Modération : œuvres en attente de validation](docs/captures/06-moderation-oeuvres.png)
+*Modération : œuvres en attente de validation*
+
+![Une œuvre ne peut pas être validée tant que ses ayants droit ne le sont pas (règle appliquée par la base)](docs/captures/07-validation-refusee.png)
+*Une œuvre ne peut pas être validée tant que ses ayants droit ne le sont pas (règle appliquée par la base)*
+
+![Modification d'une œuvre et de la répartition de ses parts](docs/captures/08-modification-oeuvre.png)
+*Modification d'une œuvre et de la répartition de ses parts*
+
+### Administration (argent)
+
+![Gestion des diffuseurs](docs/captures/09-diffuseurs.png)
+*Gestion des diffuseurs*
+
+![Nouvelle diffusion : aperçu de la répartition avant enregistrement](docs/captures/10-nouvelle-diffusion.png)
+*Nouvelle diffusion : aperçu de la répartition avant enregistrement*
+
+![Détail d'une diffusion : droits versés à chaque ayant droit](docs/captures/11-detail-diffusion.png)
+*Détail d'une diffusion : droits versés à chaque ayant droit*
+
+![Classement des ayants droit par droits perçus](docs/captures/12-droits.png)
+*Classement des ayants droit par droits perçus*
+
+### Affichage sur téléphone
+
+![Interface adaptée aux petits écrans (menu en tiroir)](docs/captures/13-mobile.png)
+*Interface adaptée aux petits écrans (menu en tiroir)*
+
+## 8. Tests et démonstration
+
+### 8.1 Tests automatisés
+
+Ils vérifient la logique métier sans avoir besoin de la base ni du navigateur : validation des données reçues (montants, parts, identifiants), calcul de la répartition des droits (même règle d'arrondi que la base), validation et construction des requêtes des formulaires.
+
+```bash
+cd backend && npm test     # 41 tests : validation des données de l'API
+cd frontend && npm test    # 83 tests : calcul des droits, formulaires de soumission et de modification
+```
+
+Ils utilisent l'exécuteur de tests intégré à Node.js : aucune dépendance supplémentaire.
+
+### 8.2 Scénario de démonstration
+
+À faire sur une base fraîchement initialisée (`schema.sql` puis `seed.sql`), API et site démarrés. Chaque étape indique le résultat attendu.
+
+#### A. Visiteur (sans connexion)
+
+1. **Rechercher.** Sur l'accueil, 6 œuvres sont listées. Taper `hery` : *Tanindrazako* et *Fitiavana Mandrakizay* apparaissent (retrouvées grâce au nom d'artiste). Genre `salegy` : *Ny Lanitra Manga* et *Sakafo Gasy*. Année `2018` : *Tanindrazako*.
+2. **Consulter.** Ouvrir *Ny Lanitra Manga* : Njaka Gasy (auteur 25 % et compositeur 35 %), Fenitra Zaza (arrangeur 10 %), Maso Music Édition (éditeur 30 %).
+3. **Ajouter (soumettre).** Menu « Soumettre une œuvre » : titre `Mamelombelona`, genre `Salegy`, email de contact. Ligne *Auteur* : onglet « Nouvelle personne », `Rakoto` / `Jean`, part `30`. Ligne *Compositeur* : rechercher `hery`, choisir *Hery Mora*, part `60`.
+   - La jauge indique **90 %** (« il reste 10 % ») et l'envoi est refusé avec le total actuel.
+   - Corriger la part de Rakoto Jean à `40` : la jauge devient verte, l'envoi réussit et une confirmation s'affiche. L'œuvre n'apparaît pas encore dans le répertoire public.
+
+#### B. Modérateur — `moderateur@nyhirako.example`
+
+4. **Tableau de bord.** 2 œuvres en attente (*Alina Mamirapiratra*, *Mamelombelona*) et 2 ayants droit en attente (*Hanta Rasoanaivo*, *Rakoto Jean*). Pas de cartes d'argent, pas de section « Administration ».
+5. **Règle de validation.** Ouvrir *Mamelombelona* et cliquer sur « Valider l'œuvre » : **refusé**, car un ayant droit n'est pas validé (trigger de la base).
+6. **Valider.** Cliquer sur « Valider tous les ayants droit en attente », puis « Valider l'œuvre » : statut *Validée*. Le répertoire public liste maintenant 7 œuvres.
+7. **Modifier.** Sur la fiche, « Modifier » : changer le genre en `Salegy moderne` et enregistrer. Cocher « Modifier aussi les ayants droit », passer les parts à 70 / 30, enregistrer : accepté (aucune diffusion n'existe encore pour cette œuvre).
+8. **Intégrité référentielle.** Sur la fiche de *Tanindrazako*, « Supprimer » : **refusé**, l'œuvre a déjà été diffusée. La suppression de *Mamelombelona* est en revanche possible.
+9. **Contrôle d'accès.** Aller à `/gestion/diffusions` : redirection vers le tableau de bord. (Côté API, la même route renvoie 403.)
+
+#### C. Administrateur — `admin@nyhirako.example`
+
+10. **Diffuseurs.** Créer `Radio Test` (type Radio, Antananarivo) : accepté. La recréer à l'identique : **refusé** (unicité nom + ville). Supprimer *Radio Fanasina FM* : **refusé** (elle a des diffusions).
+11. **Diffusion et répartition.** « Nouvelle diffusion » : œuvre *Tanindrazako*, diffuseur *Radio Fanasina FM*, montant `200000`. L'**aperçu** annonce 80 000 Ar (Voahangy Soa) / 80 000 Ar (Hery Mora) / 40 000 Ar (Éditions Ravinala). Enregistrer : la fiche de la diffusion affiche les mêmes montants et un écart de 0.
+12. **Œuvre non validée.** La recherche d'œuvre du formulaire ne propose que des œuvres validées (taper `Alina` : aucun résultat). La base refuse aussi ce cas (voir la commande `curl` ci-dessous).
+13. **Droits perçus.** Le classement liste les ayants droit par total ; ouvrir *Hery Mora* : la diffusion du test y figure avec 80 000 Ar.
+14. **Recalcul.** Modifier le montant de la diffusion à `250000` : la répartition devient 100 000 / 100 000 / 50 000.
+15. **Suppression.** Supprimer la diffusion : elle disparaît du détail de Hery et du classement.
+
+Pour l'étape 12 côté API (le jeton `$TOKEN` s'obtient comme en [section 9](#9-référence-de-lapi)) :
+
+```bash
+curl -X POST http://localhost:3000/api/gestion/diffusions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"id_oeuvre": "f9a08ab6-8414-49b2-98f7-ba30fff802d1", "id_diffuseur": 1, "date_diffusion": "2026-11-20", "montant_total": 100000}'
+# -> 422 : « L'œuvre de la diffusion … n'est pas validée : répartition impossible », rien n'est créé
+```
+
+### 8.3 Vérifier la base et ses contraintes en SQL
+
+**Contenu de la base**
+
+```sql
+-- Total des droits par ayant droit
+SELECT * FROM vue_droits_par_personne ORDER BY total_droits DESC;
+
+-- Répartition d'une diffusion
+SELECT p.nom, r_role.libelle, c.part_pct, r.montant
+FROM repartition r
+JOIN contribution c  ON c.id_contribution = r.id_contribution
+JOIN personne p      ON p.id_personne = c.id_personne
+JOIN role r_role     ON r_role.id_role = c.id_role
+WHERE r.id_diffusion = 1;
+```
+
+**Contraintes d'intégrité**
+
+Chacune de ces requêtes doit être refusée par PostgreSQL :
+
+```sql
+-- Un éditeur doit être une personne morale
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 1, 4, 10);
+
+-- Validation impossible : l'ayant droit n°11 (Hanta Rasoanaivo) n'est pas validé
+UPDATE oeuvre SET statut = 'VALIDE' WHERE id_oeuvre = 'f9a08ab6-8414-49b2-98f7-ba30fff802d1';
+
+-- Une œuvre diffusée ne peut pas être supprimée
+DELETE FROM oeuvre WHERE id_oeuvre = '01036840-40db-4276-bf5e-c4a857badb3e';
+
+-- Le même rôle ne peut pas être attribué deux fois à la même personne sur une œuvre
+INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('01036840-40db-4276-bf5e-c4a857badb3e', 1, 2, 5);
+```
+
+## 9. Référence de l'API
+
+Toutes les routes sont préfixées par `/api`. Les routes `/api/gestion/...` exigent un jeton de connexion (`Authorization: Bearer <jeton>`).
+
+### Authentification
 
 ```bash
 # L'API et la base répondent
 curl http://localhost:3000/api/health
 
-# Connexion d'un administrateur (renvoie un jeton JWT)
-curl -X POST http://localhost:3000/api/auth/login \
+# Connexion : le jeton est rangé dans $TOKEN (Node est déjà installé, pas besoin de jq)
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@nyhirako.example","password":"Admin123!"}'
+  -d '{"email":"admin@nyhirako.example","password":"Admin123!"}' \
+  | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
 
-# Utilisateur connecté (remplacer <jeton> par le jeton reçu)
-curl http://localhost:3000/api/auth/me -H "Authorization: Bearer <jeton>"
+# Utilisateur connecté
+curl http://localhost:3000/api/auth/me -H "Authorization: Bearer $TOKEN"
 ```
+
+Les exemples des sous-sections suivantes utilisent `$TOKEN`.
 
 ### Routes des œuvres
 
@@ -429,169 +802,3 @@ L'API traduit les erreurs PostgreSQL en codes HTTP :
 | Clé étrangère : référence inexistante | 422 | `id_diffuseur` qui n'existe pas |
 | `CHECK` ou trigger | 422 | Somme des parts différente de 100 |
 | Valeur invalide ou champ manquant | 400 | Statut inconnu |
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-L'application est disponible sur `http://localhost:5173`. L'API doit tourner en parallèle sur le port 3000 : en développement, Vite redirige automatiquement les appels `/api` vers elle (voir `vite.config.js`), donc aucune configuration supplémentaire n'est nécessaire.
-
-| Page | Adresse | Accès |
-|---|---|---|
-| Répertoire des œuvres (recherche) | `/` | Public |
-| Détail d'une œuvre | `/oeuvres/:id` | Public |
-| Formulaire de soumission d'une œuvre | `/soumettre` | Public |
-| Connexion | `/connexion` | Public |
-| Tableau de bord (chiffres, éléments à traiter) | `/gestion` | Modérateur / Admin |
-| Œuvres : liste, détail, validation, rejet, suppression | `/gestion/oeuvres`, `/gestion/oeuvres/:id` | Modérateur / Admin |
-| Ayants droit : liste, détail, validation, rejet, suppression | `/gestion/personnes`, `/gestion/personnes/:id` | Modérateur / Admin |
-| Modifier une œuvre (informations, ayants droit et parts) | `/gestion/oeuvres/:id/modifier` | Modérateur / Admin |
-| Modifier un ayant droit | `/gestion/personnes/:id/modifier` | Modérateur / Admin |
-| Diffuseurs : liste, création, modification, suppression | `/gestion/diffuseurs` | Admin |
-| Diffusions : liste filtrée, détail, modification, recalcul, suppression | `/gestion/diffusions`, `/gestion/diffusions/:id` | Admin |
-| Nouvelle diffusion avec aperçu de la répartition | `/gestion/diffusions/nouvelle` | Admin |
-| Droits perçus : classement et détail par ayant droit | `/gestion/droits`, `/gestion/droits/:id` | Admin |
-
-#### Espace de gestion
-
-Après connexion, les modérateurs et administrateurs arrivent sur un tableau de bord à barre latérale (menu fixe sur ordinateur, tiroir sur téléphone) : chiffres clés, soumissions à traiter, puis écrans de validation.
-
-- **Œuvres** et **Ayants droit** : onglets par statut (En attente, Validées, Rejetées, Toutes), recherche, validation ou rejet en un clic. Le filtre est conservé dans l'adresse (`?statut=EN_ATTENTE`).
-- **Fiche d'une œuvre** : répartition des parts avec le statut de chaque ayant droit. Si certains ne sont pas encore validés, un bouton permet de tous les valider avant de valider l'œuvre.
-- Les règles métier restent appliquées par la base (par exemple, une œuvre ne peut pas être validée si la somme des parts n'est pas de 100 %) : l'interface se contente d'afficher le message d'erreur.
-- Les pastilles de la barre latérale indiquent le nombre d'éléments en attente.
-- **Modification** : depuis la fiche d'une œuvre ou d'un ayant droit, le bouton « Modifier » ouvre un formulaire pré-rempli. Pour une œuvre, la répartition des parts est modifiable avec la même jauge que le formulaire de soumission ; elle est refusée par la base si des droits ont déjà été répartis (l'historique des paiements est protégé), auquel cas seules les informations de l'œuvre peuvent changer.
-
-#### Administration : de la diffusion aux droits
-
-Les pages liées à l'argent sont réservées aux administrateurs (un modérateur qui tape l'adresse est redirigé vers le tableau de bord, et l'API refuse de toute façon avec un code 403).
-
-```mermaid
-flowchart LR
-    A["Diffuseur<br/>radio, TV, salle, événement"] --> C
-    B["Œuvre validée<br/>et ses parts"] --> C["Diffusion<br/>date + montant"]
-    C -->|"calculer_repartition()"| D["Répartition<br/>un montant par contribution"]
-    D --> E["Droits perçus<br/>classement par ayant droit"]
-```
-
-- **Nouvelle diffusion** : après le choix de l'œuvre, du diffuseur, de la date et du montant, un **aperçu** montre ce que percevra chaque ayant droit avant l'enregistrement. Le calcul de l'aperçu reproduit exactement celui de la base (part × montant ÷ 100, arrondi au centime).
-- **Détail d'une diffusion** : montant, total réparti et éventuel écart d'arrondi. Modifier le montant recalcule la répartition ; l'œuvre, elle, n'est pas modifiable (la répartition en dépend).
-- **Droits perçus** : classement des ayants droit validés avec barres proportionnelles, puis détail diffusion par diffusion.
-- Les montants sont en Ariary.
-
-#### Parcours de soumission
-
-Le formulaire public permet à n'importe quel visiteur de proposer une œuvre. Il contrôle en direct que la somme des parts vaut 100 %, et ne révèle jamais l'email du soumetteur.
-
-```mermaid
-flowchart TD
-    A["Visiteur remplit le formulaire<br/>œuvre + ayants droit + parts"] --> B{"Somme des parts = 100 % ?"}
-    B -- non --> A
-    B -- oui --> C["POST /api/oeuvres<br/>(une seule transaction)"]
-    C --> D["Œuvre EN_ATTENTE<br/>+ nouvelles personnes EN_ATTENTE"]
-    D --> E{"Modérateur"}
-    E -- valide --> F["Visible dans le répertoire public"]
-    E -- rejette --> G["Reste masquée"]
-```
-
-Dans le formulaire, un ayant droit existant est recherché par nom ou nom d'artiste ; s'il n'existe pas, il peut être ajouté comme nouvelle personne (elle sera validée par un modérateur). Le rôle « Éditeur » impose une personne morale, conformément à la règle de la base.
-
-## 7. Création et remplissage de la base
-
-### Prérequis
-
-- PostgreSQL 13 ou plus (l'extension `pgcrypto` est utilisée pour hacher les mots de passe)
-- Un client `psql` en encodage UTF-8
-
-### Scripts fournis
-
-| Fichier | Rôle |
-|---|---|
-| `db/schema.sql` | Supprime puis recrée types, tables, index, triggers, fonction `calculer_repartition` et vue `vue_droits_par_personne` |
-| `db/seed.sql` | Insère des données d'exemple fictives (11 personnes, 8 œuvres, 5 diffuseurs, 12 diffusions) et calcule les répartitions |
-
-### Étapes
-
-```bash
-# 1. Créer la base
-createdb -U postgres nyhirako
-
-# 2. Créer le schéma
-psql -U postgres -d nyhirako -f db/schema.sql
-
-# 3. Charger les données d'exemple
-psql -U postgres -d nyhirako -f db/seed.sql
-```
-
-Les scripts peuvent être relancés : `schema.sql` remet la base à zéro.
-
-### Comptes de démonstration
-
-| Email | Mot de passe | Rôle |
-|---|---|---|
-| `admin@nyhirako.example` | `Admin123!` | ADMIN |
-| `moderateur@nyhirako.example` | `Moderateur123!` | MODERATEUR |
-
-Ces comptes servent uniquement à la démonstration.
-
-### Œuvres de démonstration
-
-Les œuvres du jeu de données ont des identifiants UUID fixes : leurs adresses sont donc les mêmes après chaque rechargement du seed.
-
-| Œuvre | Statut | Adresse |
-|---|---|---|
-| Tanindrazako | Validée | `/oeuvres/01036840-40db-4276-bf5e-c4a857badb3e` |
-| Ny Lanitra Manga | Validée | `/oeuvres/2aa54d3f-9654-4100-b80e-bb3f33606271` |
-| Mandihiza Ianao | Validée | `/oeuvres/37e4f819-c044-4bb2-8743-78a40fc3103b` |
-| Fitiavana Mandrakizay | Validée | `/oeuvres/715bcca7-387b-4813-8d39-b4df487b3c05` |
-| Hira ho an'ny Ray aman-dreny | Validée | `/oeuvres/1a60bfe3-2d4a-461d-bb97-ac61744e7ed5` |
-| Sakafo Gasy | Validée | `/oeuvres/271565b5-42ab-49dc-899b-eefb160e9ce6` |
-| Alina Mamirapiratra | En attente | `/oeuvres/f9a08ab6-8414-49b2-98f7-ba30fff802d1` |
-| Rano Mangatsiaka | Rejetée | `/oeuvres/e5d7cdda-e6e3-43b9-99db-f0e08b51fa58` |
-
-Seules les œuvres validées sont accessibles par leur adresse publique ; les deux autres sont visibles dans l'espace de gestion (`/gestion/oeuvres/<identifiant>`).
-
-### Vérifier que la base est correcte
-
-```sql
--- Total des droits par ayant droit
-SELECT * FROM vue_droits_par_personne ORDER BY total_droits DESC;
-
--- Répartition d'une diffusion
-SELECT p.nom, r_role.libelle, c.part_pct, r.montant
-FROM repartition r
-JOIN contribution c  ON c.id_contribution = r.id_contribution
-JOIN personne p      ON p.id_personne = c.id_personne
-JOIN role r_role     ON r_role.id_role = c.id_role
-WHERE r.id_diffusion = 1;
-```
-
-### Vérifier les contraintes d'intégrité
-
-Chacune de ces requêtes doit être refusée par PostgreSQL :
-
-```sql
--- Un éditeur doit être une personne morale
-INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('f9a08ab6-8414-49b2-98f7-ba30fff802d1', 1, 4, 10);
-
--- Validation impossible : l'ayant droit n°11 (Hanta Rasoanaivo) n'est pas validé
-UPDATE oeuvre SET statut = 'VALIDE' WHERE id_oeuvre = 'f9a08ab6-8414-49b2-98f7-ba30fff802d1';
-
--- Une œuvre diffusée ne peut pas être supprimée
-DELETE FROM oeuvre WHERE id_oeuvre = '01036840-40db-4276-bf5e-c4a857badb3e';
-
--- Le même rôle ne peut pas être attribué deux fois à la même personne sur une œuvre
-INSERT INTO contribution (id_oeuvre, id_personne, id_role, part_pct) VALUES ('01036840-40db-4276-bf5e-c4a857badb3e', 1, 2, 5);
-```
-
-## 8. Captures d'écran
-
-*À compléter.*
-
-## 9. Tests et démonstration
-
-*À compléter.*
