@@ -8,7 +8,7 @@ export function formaterDuree(secondes) {
 // Montant en Ariary, lisible : 1500000 -> « 1 500 000 Ar »
 export function formaterAriary(montant) {
   const nombre = Number(montant);
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(nombre)} Ar`;
+  return `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(nombre)} Ar`;
 }
 
 // '2026-11-20' -> « 20 nov. 2026 » (sans décalage de fuseau horaire)
@@ -29,4 +29,15 @@ export function nomPersonne(p) {
 
 export function libelleType(type) {
   return type === 'MORALE' ? 'Personne morale' : 'Personne physique';
+}
+
+export const TYPES_DIFFUSEUR = [
+  { valeur: 'RADIO', libelle: 'Radio' },
+  { valeur: 'TV', libelle: 'Télévision' },
+  { valeur: 'SALLE', libelle: 'Salle de spectacle' },
+  { valeur: 'EVENEMENT', libelle: 'Événement' },
+];
+
+export function libelleTypeDiffuseur(type) {
+  return TYPES_DIFFUSEUR.find((t) => t.valeur === type)?.libelle ?? type;
 }

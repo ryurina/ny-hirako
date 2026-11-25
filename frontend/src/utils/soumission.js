@@ -39,7 +39,7 @@ export function formaterPourcent(nombre) {
 }
 
 // Renvoie la liste des problèmes à corriger (tableau vide si le formulaire est valide)
-export function validerSoumission(f) {
+export function validerSoumission(f, { avecEmail = true, avecContributions = true } = {}) {
   const erreurs = [];
 
   const titre = f.titre.trim();
@@ -61,8 +61,12 @@ export function validerSoumission(f) {
     erreurs.push('Le code ISWC doit avoir le format T-123.456.789-0.');
   }
 
-  if (!f.email.trim()) erreurs.push('Votre adresse email est obligatoire.');
-  else if (!REGEX_EMAIL.test(f.email.trim())) erreurs.push('Votre adresse email n’est pas valide.');
+  if (avecEmail) {
+    if (!f.email.trim()) erreurs.push('Votre adresse email est obligatoire.');
+    else if (!REGEX_EMAIL.test(f.email.trim())) erreurs.push('Votre adresse email n’est pas valide.');
+  }
+
+  if (!avecContributions) return erreurs;
 
   if (f.lignes.length === 0) erreurs.push('Ajoutez au moins un ayant droit.');
 

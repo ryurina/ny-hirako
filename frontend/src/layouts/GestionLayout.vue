@@ -8,7 +8,7 @@ import Icone from '../components/Icone.vue';
 
 const route = useRoute();
 const router = useRouter();
-const { utilisateur, deconnecter } = useAuth();
+const { utilisateur, estAdmin, deconnecter } = useAuth();
 const { stats, rafraichir } = useStats();
 
 const menuOuvert = ref(false);
@@ -29,6 +29,13 @@ const elements = computed(() => [
     actif: route.path.startsWith('/gestion/personnes'),
     compteur: stats.value?.personnes_en_attente,
   },
+]);
+
+// Section réservée aux administrateurs : tout ce qui touche à l'argent
+const elementsAdmin = computed(() => [
+  { nom: 'Diffuseurs', icone: 'radio', vers: { name: 'gestion-diffuseurs' }, actif: route.path.startsWith('/gestion/diffuseurs') },
+  { nom: 'Diffusions', icone: 'calendrier', vers: { name: 'gestion-diffusions' }, actif: route.path.startsWith('/gestion/diffusions') },
+  { nom: 'Droits perçus', icone: 'droits', vers: { name: 'gestion-droits' }, actif: route.path.startsWith('/gestion/droits') },
 ]);
 
 const titre = computed(() => route.meta.titre ?? 'Espace de gestion');
@@ -67,6 +74,16 @@ function sortir() {
           <span v-if="el.compteur" class="compteur" :aria-label="`${el.compteur} en attente`">{{ el.compteur }}</span>
         </RouterLink>
       </nav>
+
+      <template v-if="estAdmin">
+        <p class="menu-titre">Administration</p>
+        <nav class="menu" aria-label="Administration">
+          <RouterLink v-for="el in elementsAdmin" :key="el.nom" :to="el.vers" :class="{ actif: el.actif }">
+            <Icone :nom="el.icone" />
+            <span>{{ el.nom }}</span>
+          </RouterLink>
+        </nav>
+      </template>
 
       <div class="barre-bas">
         <div class="utilisateur-lateral">

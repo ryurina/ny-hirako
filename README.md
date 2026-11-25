@@ -300,7 +300,7 @@ curl http://localhost:3000/api/auth/me -H "Authorization: Bearer <jeton>"
 | GET | `/api/oeuvres/:id` | Public | Détail d'une œuvre validée avec ses contributions |
 | POST | `/api/oeuvres` | Public | Formulaire de soumission : crée l'œuvre en `EN_ATTENTE` |
 | GET | `/api/gestion/oeuvres?statut=&q=` | Modérateur / Admin | Liste de toutes les œuvres, tous statuts |
-| GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission et le statut de chaque ayant droit |
+| GET | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Détail avec les informations de soumission, le statut, le type et le rôle de chaque ayant droit |
 | POST | `/api/gestion/oeuvres` | Modérateur / Admin | Création directe |
 | PUT | `/api/gestion/oeuvres/:id` | Modérateur / Admin | Modification (les contributions sont remplacées si elles sont fournies) |
 | PATCH | `/api/gestion/oeuvres/:id/statut` | Modérateur / Admin | Validation ou rejet : `{"statut": "VALIDE"}` |
@@ -448,6 +448,12 @@ L'application est disponible sur `http://localhost:5173`. L'API doit tourner en 
 | Tableau de bord (chiffres, éléments à traiter) | `/gestion` | Modérateur / Admin |
 | Œuvres : liste, détail, validation, rejet, suppression | `/gestion/oeuvres`, `/gestion/oeuvres/:id` | Modérateur / Admin |
 | Ayants droit : liste, détail, validation, rejet, suppression | `/gestion/personnes`, `/gestion/personnes/:id` | Modérateur / Admin |
+| Modifier une œuvre (informations, ayants droit et parts) | `/gestion/oeuvres/:id/modifier` | Modérateur / Admin |
+| Modifier un ayant droit | `/gestion/personnes/:id/modifier` | Modérateur / Admin |
+| Diffuseurs : liste, création, modification, suppression | `/gestion/diffuseurs` | Admin |
+| Diffusions : liste filtrée, détail, modification, recalcul, suppression | `/gestion/diffusions`, `/gestion/diffusions/:id` | Admin |
+| Nouvelle diffusion avec aperçu de la répartition | `/gestion/diffusions/nouvelle` | Admin |
+| Droits perçus : classement et détail par ayant droit | `/gestion/droits`, `/gestion/droits/:id` | Admin |
 
 #### Espace de gestion
 
@@ -457,6 +463,24 @@ Après connexion, les modérateurs et administrateurs arrivent sur un tableau de
 - **Fiche d'une œuvre** : répartition des parts avec le statut de chaque ayant droit. Si certains ne sont pas encore validés, un bouton permet de tous les valider avant de valider l'œuvre.
 - Les règles métier restent appliquées par la base (par exemple, une œuvre ne peut pas être validée si la somme des parts n'est pas de 100 %) : l'interface se contente d'afficher le message d'erreur.
 - Les pastilles de la barre latérale indiquent le nombre d'éléments en attente.
+- **Modification** : depuis la fiche d'une œuvre ou d'un ayant droit, le bouton « Modifier » ouvre un formulaire pré-rempli. Pour une œuvre, la répartition des parts est modifiable avec la même jauge que le formulaire de soumission ; elle est refusée par la base si des droits ont déjà été répartis (l'historique des paiements est protégé), auquel cas seules les informations de l'œuvre peuvent changer.
+
+#### Administration : de la diffusion aux droits
+
+Les pages liées à l'argent sont réservées aux administrateurs (un modérateur qui tape l'adresse est redirigé vers le tableau de bord, et l'API refuse de toute façon avec un code 403).
+
+```mermaid
+flowchart LR
+    A["Diffuseur<br/>radio, TV, salle, événement"] --> C
+    B["Œuvre validée<br/>et ses parts"] --> C["Diffusion<br/>date + montant"]
+    C -->|"calculer_repartition()"| D["Répartition<br/>un montant par contribution"]
+    D --> E["Droits perçus<br/>classement par ayant droit"]
+```
+
+- **Nouvelle diffusion** : après le choix de l'œuvre, du diffuseur, de la date et du montant, un **aperçu** montre ce que percevra chaque ayant droit avant l'enregistrement. Le calcul de l'aperçu reproduit exactement celui de la base (part × montant ÷ 100, arrondi au centime).
+- **Détail d'une diffusion** : montant, total réparti et éventuel écart d'arrondi. Modifier le montant recalcule la répartition ; l'œuvre, elle, n'est pas modifiable (la répartition en dépend).
+- **Droits perçus** : classement des ayants droit validés avec barres proportionnelles, puis détail diffusion par diffusion.
+- Les montants sont en Ariary.
 
 #### Parcours de soumission
 

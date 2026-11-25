@@ -10,3 +10,9 @@ export const changerStatutPersonne = (id, statut) =>
 export const supprimerOeuvre = (id) => api(`/gestion/oeuvres/${id}`, { method: 'DELETE' });
 
 export const supprimerPersonne = (id) => api(`/gestion/personnes/${id}`, { method: 'DELETE' });
+
+export const supprimerDiffuseur = (id) => api(`/gestion/diffuseurs/${id}`, { method: 'DELETE' });
+
+export const supprimerDiffusion = (id) => api(`/gestion/diffusions/${id}`, { method: 'DELETE' });
+
+export const recalculerRepartition = (id) => api(`/gestion/diffusions/${id}/repartition`, { method: 'POST' });

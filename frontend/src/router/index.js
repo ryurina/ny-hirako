@@ -36,6 +36,13 @@ const router = createRouter({
           meta: { titre: 'Détail de l’œuvre' },
         },
         {
+          path: 'oeuvres/:id/modifier',
+          name: 'gestion-oeuvre-edition',
+          component: () => import('../views/gestion/OeuvreEditView.vue'),
+          props: true,
+          meta: { titre: 'Modifier l’œuvre' },
+        },
+        {
           path: 'personnes',
           name: 'gestion-personnes',
           component: () => import('../views/gestion/PersonnesGestionView.vue'),
@@ -47,6 +54,53 @@ const router = createRouter({
           component: () => import('../views/gestion/PersonneGestionDetailView.vue'),
           props: true,
           meta: { titre: 'Détail de l’ayant droit' },
+        },
+        {
+          path: 'personnes/:id/modifier',
+          name: 'gestion-personne-edition',
+          component: () => import('../views/gestion/PersonneEditView.vue'),
+          props: true,
+          meta: { titre: 'Modifier l’ayant droit' },
+        },
+
+        // ----- Administration (administrateurs uniquement) -----
+        {
+          path: 'diffuseurs',
+          name: 'gestion-diffuseurs',
+          component: () => import('../views/gestion/DiffuseursView.vue'),
+          meta: { admin: true, titre: 'Diffuseurs' },
+        },
+        {
+          path: 'diffusions',
+          name: 'gestion-diffusions',
+          component: () => import('../views/gestion/DiffusionsView.vue'),
+          meta: { admin: true, titre: 'Diffusions' },
+        },
+        {
+          path: 'diffusions/nouvelle',
+          name: 'gestion-diffusion-nouvelle',
+          component: () => import('../views/gestion/NouvelleDiffusionView.vue'),
+          meta: { admin: true, titre: 'Nouvelle diffusion' },
+        },
+        {
+          path: 'diffusions/:id',
+          name: 'gestion-diffusion',
+          component: () => import('../views/gestion/DiffusionDetailView.vue'),
+          props: true,
+          meta: { admin: true, titre: 'Détail de la diffusion' },
+        },
+        {
+          path: 'droits',
+          name: 'gestion-droits',
+          component: () => import('../views/gestion/DroitsView.vue'),
+          meta: { admin: true, titre: 'Droits perçus' },
+        },
+        {
+          path: 'droits/:id',
+          name: 'gestion-droit',
+          component: () => import('../views/gestion/DroitsDetailView.vue'),
+          props: true,
+          meta: { admin: true, titre: 'Droits d’un ayant droit' },
         },
       ],
     },

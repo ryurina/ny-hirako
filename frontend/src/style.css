@@ -1591,3 +1591,99 @@ tbody tr:hover td {
   gap: 0.6rem;
   margin-top: 1.25rem;
 }
+
+/* =====================================================================
+   Administration : diffuseurs, diffusions, droits
+   ===================================================================== */
+.menu-titre {
+  margin: 1.4rem 0.8rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.pousser {
+  margin-left: auto;
+}
+
+.filtre-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 500;
+  color: var(--texte-doux);
+}
+
+.filtre-date input {
+  width: auto;
+}
+
+.montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--primaire);
+}
+
+.montant-barre {
+  min-width: 8.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--primaire);
+}
+
+.rang {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--secondaire-fond);
+  color: var(--primaire);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+tfoot td {
+  border-top: 2px solid var(--bordure-forte);
+  border-bottom: 0;
+  background: var(--fond);
+}
+
+.champ-dialogue {
+  margin-top: 1rem;
+}
+
+.edition-diffusion {
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--bordure);
+}
+
+.edition-diffusion .actions-fiche {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 1rem;
+}
+
+/* =====================================================================
+   Formulaires de modification
+   ===================================================================== */
+.case-a-cocher {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.case-a-cocher input {
+  width: auto;
+  margin-top: 0.25rem;
+  accent-color: var(--secondaire);
+}

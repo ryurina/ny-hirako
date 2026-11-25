@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../../api/client.js';
 import { changerStatutPersonne, supprimerPersonne } from '../../api/gestion.js';
 import { useStats } from '../../composables/useStats.js';
@@ -10,6 +10,7 @@ import { formaterDate, nomPersonne, libelleType } from '../../utils/format.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const router = useRouter();
+const route = useRoute();
 const { rafraichir } = useStats();
 
 const personne = ref(null);
@@ -62,6 +63,9 @@ async function supprimer() {
   }
 }
 
+// Message affiché après un enregistrement depuis la page de modification
+if (route.query.modifie) info.value = 'Modifications enregistrées.';
+
 watch(() => props.id, () => charger(), { immediate: true });
 </script>
 
@@ -110,6 +114,7 @@ watch(() => props.id, () => charger(), { immediate: true });
       </dl>
 
       <div class="actions-fiche">
+        <RouterLink class="btn" :to="{ name: 'gestion-personne-edition', params: { id } }">Modifier</RouterLink>
         <button v-if="personne.statut !== 'VALIDE'" type="button" class="btn btn-succes" :disabled="enAction" @click="changer('VALIDE')">
           Valider l’ayant droit
         </button>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../../api/client.js';
 import { changerStatutOeuvre, changerStatutPersonne, supprimerOeuvre } from '../../api/gestion.js';
 import { useStats } from '../../composables/useStats.js';
@@ -11,6 +11,7 @@ import { formaterDuree, formaterDate } from '../../utils/format.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const router = useRouter();
+const route = useRoute();
 const { rafraichir } = useStats();
 
 const oeuvre = ref(null);
@@ -82,6 +83,9 @@ async function supprimer() {
   }
 }
 
+// Message affiché après un enregistrement depuis la page de modification
+if (route.query.modifie) info.value = 'Modifications enregistrées.';
+
 watch(() => props.id, () => charger(), { immediate: true });
 </script>
 
@@ -117,6 +121,7 @@ watch(() => props.id, () => charger(), { immediate: true });
       </ul>
 
       <div class="actions-fiche">
+        <RouterLink class="btn" :to="{ name: 'gestion-oeuvre-edition', params: { id } }">Modifier</RouterLink>
         <button
           v-if="oeuvre.statut !== 'VALIDE'"
           type="button"

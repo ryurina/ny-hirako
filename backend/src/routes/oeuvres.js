@@ -21,7 +21,7 @@ const COLONNES_PUBLIQUES =
 // Les modérateurs voient en plus les informations de soumission
 const COLONNES_GESTION = `${COLONNES_PUBLIQUES}, o.soumetteur_email, o.date_soumission, o.id_valideur`;
 
-const CONTRIBUTIONS_JSON = `
+const contributionsJson = (gestion) => `
   COALESCE(
     json_agg(
       json_build_object(
@@ -29,14 +29,14 @@ const CONTRIBUTIONS_JSON = `
         'id_personne',     p.id_personne,
         'nom_affiche',     COALESCE(p.nom_artiste, TRIM(COALESCE(p.prenom, '') || ' ' || p.nom)),
         'role',            r.libelle,
-        'part_pct',        c.part_pct
+        'part_pct',        c.part_pct${gestion ? ",\n        'statut_personne', p.statut,\n        'type_personne', p.type,\n        'id_role', r.id_role" : ''}
       ) ORDER BY r.id_role, c.id_contribution
     ) FILTER (WHERE c.id_contribution IS NOT NULL),
     '[]'::json
   ) AS contributions`;
 
 const selectOeuvres = (gestion, where = '') => `
-  SELECT ${gestion ? COLONNES_GESTION : COLONNES_PUBLIQUES}, ${CONTRIBUTIONS_JSON}
+  SELECT ${gestion ? COLONNES_GESTION : COLONNES_PUBLIQUES}, ${contributionsJson(gestion)}
   FROM oeuvre o
   LEFT JOIN contribution c ON c.id_oeuvre = o.id_oeuvre
   LEFT JOIN personne p     ON p.id_personne = c.id_personne
