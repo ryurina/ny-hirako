@@ -2,11 +2,13 @@
 
 > Gestion simplifiée des droits d'auteur pour les artistes malagasy.
 
-*Projet final : Application web avec une base de données relationnelle (échéance : 27 novembre 2026).*
+*Projet final : Application web avec une base de données relationnelle*
+
+![Demo](demo.png)
 
 Dépôt : <https://github.com/ryurina/ny-hirako>
 
-Auteur : RANARISON Rina ([@ryurina](https://github.com/ryurina))
+Auteur : RANARISON Rina
 
 ## Sommaire
 
