@@ -183,25 +183,6 @@ h2 {
   margin-left: 0.5rem;
 }
 
-.site-footer {
-  border-top: 1px solid var(--bordure);
-  background: var(--carte);
-  color: var(--texte-doux);
-  font-size: 0.85rem;
-  text-align: center;
-  padding: 1.25rem 1rem;
-}
-
-.site-footer::before {
-  content: '';
-  display: block;
-  width: 36px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--accent);
-  margin: 0 auto 0.75rem;
-}
-
 /* ---------- Composants ---------- */
 .carte {
   background: var(--carte);
@@ -1686,4 +1667,111 @@ tfoot td {
   width: auto;
   margin-top: 0.25rem;
   accent-color: var(--secondaire);
+}
+
+/* =====================================================================
+   Pied de page
+   ===================================================================== */
+.site-footer {
+  margin-top: 3rem;
+  color: #cbd5e1;
+  background: linear-gradient(180deg, #172554 0%, #131f4a 100%);
+  border-top: 3px solid var(--accent);
+  font-size: 0.9rem;
+}
+
+.pied {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(3, 1fr);
+  gap: 2rem;
+  padding-top: 2.5rem;
+  padding-bottom: 2rem;
+}
+
+.pied-marque .marque {
+  color: #fff;
+}
+
+.pied-marque .marque-sous-titre {
+  color: #94a3b8;
+}
+
+.pied-marque p {
+  max-width: 320px;
+  margin: 1rem 0 0;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+.pied-colonne {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.pied-titre {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.site-footer a {
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.site-footer a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.site-footer a:focus-visible {
+  outline-color: rgba(214, 168, 79, 0.7);
+}
+
+.pied-bas {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pied-bas-contenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.pied-bas-contenu a {
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .pied {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pied-marque {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .pied {
+    grid-template-columns: 1fr;
+  }
+
+  .pied-bas-contenu {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

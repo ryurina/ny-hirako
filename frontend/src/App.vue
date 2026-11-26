@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { useAuth } from './composables/useAuth.js';
 import LogoMark from './components/LogoMark.vue';
+import SiteFooter from './components/SiteFooter.vue';
 
 const { utilisateur, estConnecte, deconnecter } = useAuth();
 const route = useRoute();
@@ -48,7 +49,5 @@ function sortir() {
     <RouterView />
   </main>
 
-  <footer v-if="!enGestion" class="site-footer">
-    ny-hirako · Gestion des droits d'auteur · Projet de base de données relationnelle
-  </footer>
+  <SiteFooter v-if="!enGestion" />
 </template>
