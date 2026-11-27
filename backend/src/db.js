@@ -1,12 +1,16 @@
 import pg from 'pg';
 import { config } from './config.js';
+import { optionsConnexion } from './utils/connexion.js';
 
 // Les dates SQL (DATE) sont renvoyées telles quelles ('2026-07-12') :
 // pas de conversion en objet Date, donc pas de décalage de fuseau horaire.
 pg.types.setTypeParser(1082, (valeur) => valeur);
 
 // Les NUMERIC (montants, parts) restent des chaînes : pas de perte de précision.
-export const pool = new pg.Pool({ connectionString: config.databaseUrl });
+export const pool = new pg.Pool({
+  ...optionsConnexion(config.databaseUrl, { ca: config.databaseCa }),
+  max: config.poolMax,
+});
 
 export const query = (texte, params) => pool.query(texte, params);
 
