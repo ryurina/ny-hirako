@@ -4,11 +4,10 @@
 
 *Projet final : Application web avec une base de données relationnelle*
 
-![Demo](demo.png)
-
-Dépôt : <https://github.com/ryurina/ny-hirako>
-
 Auteur : RANARISON Rina
+Demo: https://ny-hirako.vercel.app/
+
+![Demo](demo.png)
 
 ## Sommaire
 
