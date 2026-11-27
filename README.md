@@ -5,7 +5,10 @@
 *Projet final : Application web avec une base de données relationnelle*
 
 Auteur : RANARISON Rina
+
 Demo: https://ny-hirako.vercel.app/
+
+Compte Demo Admin: admin@nyhirako.example / Admin123!
 
 ![Demo](demo.png)
 
